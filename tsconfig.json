@@ -1,0 +1,18 @@
+{
+	"compilerOptions": {
+		"module": "amd",
+		"target": "es2015",
+		"removeComments": true,
+		"preserveConstEnums": true,
+		"outFile": "index.js",
+		"rootDir": "src",
+		"strictNullChecks": true,
+		"experimentalDecorators": true,
+		//"strictPropertyInitialization": true,
+		//"listFiles": true,
+		"allowJs": false,
+		"sourceMap": false
+	},"files": [
+		"src/index.ts"
+	]
+}

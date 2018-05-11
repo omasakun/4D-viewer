@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="description" content="次元を超えた面白さ！">
+	<meta name="author" content="omasakun">
+	<title>4D Viewer</title>
+	<link rel="stylesheet" href="common/common.css">
+	<script src="./node_modules/almond/almond.js"></script>
+	<script src="./index.js"></script>
+	<script>
+		index = require("index");
+		index.main();
+	</script>
+	<style>
+		html,
+		body {
+			padding: 0;
+			height: 100%;
+			width: 100%;
+		}
+
+		#log {
+			color:#333;
+			background-color: #EEE;
+			/*white-space: pre-wrap;*/
+			opacity: 0.8;
+			padding-left: 0.5em;
+			max-height: 100%;
+			max-width: 50%;
+			font-size: 0.9em;
+			font-family: monospace;
+		}
+		/* something */
+	</style>
+</head>
+
+<body>
+	<div class="fullH fullW stack">
+		<div id="c1-parent" class="fullW fullH cV cCenter center">
+			<canvas id="c1" class="fullW fullH"></canvas>
+		</div>
+		<pre id="log" class="scrollX scrollY"></pre>
+	</div>
+	<style>
+		@import url('https://fonts.googleapis.com/earlyaccess/notosansjapanese.css');
+		@import url('https://fonts.googleapis.com/css?family=Open+Sans:300,700');
+		@import url('https://fonts.googleapis.com/earlyaccess/kokoro.css');
+		@import url('https://fonts.googleapis.com/earlyaccess/roundedmplus1c.css');
+	</style>
+</body>

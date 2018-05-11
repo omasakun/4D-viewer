@@ -1,0 +1,12 @@
+{
+  "name": "ts-with-lib",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "author": "omasakun",
+  "license": "MIT",
+  "dependencies": {
+    "google-closure-compiler": "^20180402.0.0",
+    "almond":"^0.3.3"
+  }
+}

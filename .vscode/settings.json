@@ -1,0 +1,24 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+	"editor.tabSize": 2,
+    "editor.insertSpaces": false,
+    "editor.wordWrap": "on",
+    "files.exclude": {
+        "out": false // set this to true to hide the "out" folder with the compiled JS files
+    },
+    "search.exclude": {
+        "./index.js": true,
+        "./index.min/js": true
+    },
+    "editor.minimap.enabled": false,
+    "liveServer.settings.ignoreFiles": [
+        ".vscode/**",
+        "**/*.scss",
+        "**/*.sass",
+        "**/*.ts"
+    ],
+    "liveServer.settings.wait": 100,
+    "editor.tokenColorCustomizations": {
+        "comments": "#BDB"
+    }
+}
