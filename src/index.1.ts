@@ -15,11 +15,11 @@ var FPSMeter = new FPS([(fps) => log({ FPS: fps })], 60);
 function nA(len: number) {
 	return ".".repeat(len).split("");
 }
-const dim = 4;
+const dim = 3;
 const arrays = {
 	position: {
 		numComponents: dim,
-		data: ([] as number[]).concat(...nA(dim * dim).map((_, i) => nA(dim).map((_, j) => i & (1 << j) ? 1 : -1))) // TODO: High cost
+		data: ([] as number[]).concat(...nA(dim * dim - 1).map((_, i) => nA(dim).map((_, j) => i & (1 << j) ? 1 : -1))) // TODO: High cost
 	},
 	indices: {
 		numComponents: 3, // Triangles
@@ -38,12 +38,12 @@ const arrays = {
 	},
 	texcoord: {
 		numComponents: 2,
-		data: ([] as number[]).concat(...nA(dim * dim).map((_, i) => {
+		data: ([] as number[]).concat(...nA(dim * dim - 1).map((_, i) => {
 			var tmp = nA(dim).map((_, j) => i & (1 << j) ? 1 : 0);//.reduce((pv, cv) => pv + cv, 0) % 4;
 			// console.log(tmp); // TODO: テクスチャのつなぎ目が見える件について
 			return [(tmp[0] + tmp[2]) & 1, (tmp[1] + tmp[2]) & 1];
 		}))
-	}
+	}	//[1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1],
 };
 console.log(arrays);
 const uniforms = {
@@ -90,11 +90,8 @@ function onTick(ticks: number, time: number): boolean {
 	time *= 0.001;
 	twgl.resizeCanvasToDisplaySize(gl.canvas);
 	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-	// gl.enable(gl.DEPTH_TEST);
+	gl.enable(gl.DEPTH_TEST);
 	// gl.enable(gl.CULL_FACE); // TODO: Performance issue
-	gl.enable(gl.BLEND);
-	gl.blendFunc(gl.ONE, gl.ONE);
-	//gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	const fov = 30 * Math.PI / 180;
 	const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;

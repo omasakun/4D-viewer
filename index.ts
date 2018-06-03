@@ -6,46 +6,17 @@ import { ge, setClass2Elms, setClassList } from "./lib/browser/dom";
 import { Logger, getLogger } from "./lib/browser/logger";
 import { initWebGL } from "./lib/browser/webgl";
 import { showError } from "./lib/common/util";
-//import { Matrix, Vector } from "./matrix-vector";
+import { Matrix,Vector } from "./matrix-vector";
 
 //import { twgl } from "../node_modules/@types/twgl.js/index"; // http://twgljs.org/docs/ */
-export var gl: WebGLRenderingContext, canvas: HTMLCanvasElement, canvasParent: HTMLDivElement, log: Logger;//, mat = Matrix, vec = Vector;
+export var gl: WebGLRenderingContext, canvas: HTMLCanvasElement, canvasParent: HTMLDivElement, log: Logger,mat=Matrix,vec=Vector;
 var programInfo: twgl.ProgramInfo, bufferInfo: twgl.BufferInfo, tex: WebGLTexture;
 var FPSMeter = new FPS([(fps) => log({ FPS: fps })], 60);
-function nA(len: number) {
-	return ".".repeat(len).split("");
-}
-const dim = 4;
 const arrays = {
-	position: {
-		numComponents: dim,
-		data: ([] as number[]).concat(...nA(dim * dim).map((_, i) => nA(dim).map((_, j) => i & (1 << j) ? 1 : -1))) // TODO: High cost
-	},
-	indices: {
-		numComponents: 3, // Triangles
-		data: (() => {
-			var result: number[][] = [];
-			for (let i = 0; i < dim * dim; i++)
-				for (let j = 0; j < dim; j++)
-					for (let k = j + 1; k < dim; k++)
-						if ((i & (1 << j)) == 0 && (i & (1 << k)) == 0 && i + (1 << k) + (1 << j) < (1 << dim)) {
-							result.push([i, i + (1 << j), i + (1 << k)]);
-							// console.log((32 + i).toString(2), j, k, "-", i, i + (1 << j), i + (1 << k));
-							result.push([i + (1 << k) + (1 << j), i + (1 << k), i + (1 << j)]);
-						}
-			return ([] as number[]).concat(...result);
-		})()
-	},
-	texcoord: {
-		numComponents: 2,
-		data: ([] as number[]).concat(...nA(dim * dim).map((_, i) => {
-			var tmp = nA(dim).map((_, j) => i & (1 << j) ? 1 : 0);//.reduce((pv, cv) => pv + cv, 0) % 4;
-			// console.log(tmp); // TODO: テクスチャのつなぎ目が見える件について
-			return [(tmp[0] + tmp[2]) & 1, (tmp[1] + tmp[2]) & 1];
-		}))
-	}
+	position: [1, 1, -1, 1, 1, 1, 1, -1, 1, 1, -1, -1, -1, 1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, 1, 1, 1, 1, 1, 1, -1, -1, 1, -1, -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, 1, 1, 1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1, -1, 1, -1, 1, 1, -1, 1, -1, -1, -1, -1, -1], // 72 24x3
+	texcoord: [1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1], // 48 24x2
+	indices: [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23], // 36
 };
-console.log(arrays);
 const uniforms = {
 	u_diffuse: {} as WebGLTexture // set @ init()
 };
@@ -65,7 +36,6 @@ function init() {
 	}
 	programInfo = twgl.createProgramInfo(gl, ["vs", "fs"]);
 	bufferInfo = twgl.createBufferInfoFromArrays(gl, arrays);
-	console.log(bufferInfo);
 	tex = twgl.createTexture(gl, {
 		min: gl.NEAREST,
 		mag: gl.NEAREST,
@@ -90,11 +60,8 @@ function onTick(ticks: number, time: number): boolean {
 	time *= 0.001;
 	twgl.resizeCanvasToDisplaySize(gl.canvas);
 	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-	// gl.enable(gl.DEPTH_TEST);
-	// gl.enable(gl.CULL_FACE); // TODO: Performance issue
-	gl.enable(gl.BLEND);
-	gl.blendFunc(gl.ONE, gl.ONE);
-	//gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+	gl.enable(gl.DEPTH_TEST);
+	gl.enable(gl.CULL_FACE);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	const fov = 30 * Math.PI / 180;
 	const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
