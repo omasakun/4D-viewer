@@ -1,10 +1,10 @@
-define("lib/browser/doc-loaded-listener", ["require", "exports"], function (require, exports) {
+define("src/lib/browser/doc-loaded-listener", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.DOC_LOADED = false || exports.DOC_LOADED == true;
     window.addEventListener("load", () => exports.DOC_LOADED = true);
 });
-define("lib/browser/fps", ["require", "exports"], function (require, exports) {
+define("src/lib/browser/fps", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class FPS {
@@ -35,7 +35,7 @@ define("lib/browser/fps", ["require", "exports"], function (require, exports) {
     }
     exports.FPS = FPS;
 });
-define("lib/browser/util", ["require", "exports", "lib/browser/doc-loaded-listener"], function (require, exports, doc_loaded_listener_1) {
+define("src/lib/browser/util", ["require", "exports", "src/lib/browser/doc-loaded-listener"], function (require, exports, doc_loaded_listener_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     function loadScript(src) {
@@ -146,7 +146,7 @@ define("lib/browser/util", ["require", "exports", "lib/browser/doc-loaded-listen
     }
     exports.eventloop = eventloop;
 });
-define("lib/browser/dom", ["require", "exports"], function (require, exports) {
+define("src/lib/browser/dom", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     function ge(id) { return document.getElementById(id); }
@@ -166,7 +166,7 @@ define("lib/browser/dom", ["require", "exports"], function (require, exports) {
     }
     exports.setClass2Elms = setClass2Elms;
 });
-define("lib/common/util", ["require", "exports"], function (require, exports) {
+define("src/lib/common/util", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     function dateFormat(date) {
@@ -206,7 +206,7 @@ define("lib/common/util", ["require", "exports"], function (require, exports) {
     }
     exports.padLeft = padLeft;
 });
-define("lib/browser/logger", ["require", "exports", "lib/common/util"], function (require, exports, util_1) {
+define("src/lib/browser/logger", ["require", "exports", "src/lib/common/util"], function (require, exports, util_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     function getLogger(logElm, maxLen, log2console = true) {
@@ -236,7 +236,7 @@ define("lib/browser/logger", ["require", "exports", "lib/common/util"], function
     }
     exports.getLogger = getLogger;
 });
-define("lib/browser/webgl", ["require", "exports", "lib/common/util"], function (require, exports, util_2) {
+define("src/lib/browser/webgl", ["require", "exports", "src/lib/common/util"], function (require, exports, util_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     function initWebGL(canvas) {
@@ -314,9 +314,271 @@ define("lib/browser/webgl", ["require", "exports", "lib/common/util"], function 
     }
     exports.createTexture = createTexture;
 });
-define("index", ["require", "exports", "lib/browser/fps", "lib/browser/util", "lib/browser/dom", "lib/browser/logger", "lib/browser/webgl", "lib/common/util", "lib/browser/doc-loaded-listener"], function (require, exports, fps_1, util_3, dom_1, logger_1, webgl_1, util_4) {
+define("src/common-setting", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    exports.DEBUG_MODE = true;
+});
+define("src/lib/common/matrix-vector", ["require", "exports", "src/common-setting", "src/lib/common/util"], function (require, exports, common_setting_1, util_3) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    class Matrix {
+        constructor(d, array) {
+            this.dimension = d;
+            if (array == undefined) {
+                array = new Array(d * d);
+                for (let i = 0; i < d * d; i++) {
+                    array[i] = 0;
+                }
+            }
+            this.data = array;
+            if (common_setting_1.DEBUG_MODE) {
+                if (array.length != d * d) {
+                    util_3.showError("Matrix.ts 指定されたarrayの長さが合わない。");
+                    return;
+                }
+            }
+        }
+        addScala(n) {
+            for (let i = 0; i < this.dimension * this.dimension; i++)
+                this.data[i] += n;
+            return this;
+        }
+        mulScala(n) {
+            for (let i = 0; i < this.dimension * this.dimension; i++)
+                this.data[i] *= n;
+            return this;
+        }
+        addMat(m) {
+            if (m.dimension != this.dimension) {
+                util_3.showError("型が違って計算できない");
+                throw "型が違って計算できない";
+            }
+            for (let i = 0; i < this.dimension * this.dimension; i++)
+                this.data[i] += m.data[i];
+            return this;
+        }
+        mulMatEach(m) {
+            if (m.dimension != this.dimension) {
+                util_3.showError("型が違って計算できない");
+                throw "型が違って計算できない";
+            }
+            for (let i = 0; i < this.dimension * this.dimension; i++)
+                this.data[i] *= m.data[i];
+            return this;
+        }
+        mulMat(m) {
+            if (m.dimension != this.dimension) {
+                util_3.showError("型が違って計算できない");
+                throw "型が違って計算できない";
+            }
+            var tmp2 = new Array(this.dimension * this.dimension);
+            for (let x = 0; x < this.dimension; x++) {
+                for (let y = 0; y < this.dimension; y++) {
+                    var tmp = 0;
+                    for (let i = 0; i < this.dimension; i++) {
+                        tmp += this.data[x * this.dimension + i] * m.data[i * this.dimension + y];
+                    }
+                    tmp2[x * this.dimension + y] = tmp;
+                }
+            }
+            this.data = tmp2;
+            return this;
+        }
+        item(x, y) {
+            if (0 > x || x >= this.dimension || 0 > y || y >= this.dimension) {
+                util_3.showError("あうと おぶ ばうんず");
+                throw "あうと おぶ ばうんず";
+            }
+            return this.data[x * this.dimension + y];
+        }
+        getId() {
+            for (let i = 0; i < this.dimension * this.dimension; i++)
+                this.data[i] = i % (this.dimension + 1) == 0 ? 1 : 0;
+            return this;
+        }
+        clone() {
+            var _data = new Array(this.dimension * this.dimension);
+            for (let i = 0; i < this.dimension * this.dimension; i++)
+                _data[i] = this.data[i];
+            return new Matrix(this.dimension, _data);
+        }
+        transpose() {
+            var tmp = new Array(this.dimension * this.dimension);
+            for (let i = 0; i < this.dimension * this.dimension; i++)
+                tmp[i] = this.data[(i % this.dimension) * this.dimension + ((i / this.dimension) << 0)];
+            this.data = tmp;
+            return this;
+        }
+        inverse() {
+            if (this.dimension == 1)
+                return this;
+            if (this.dimension == 2) {
+                var det = this.data[0] * this.data[3] - this.data[1] * this.data[2];
+                this.data = [this.data[3] / det, -this.data[1] / det, -this.data[2] / det, this.data[0] / det];
+                return this;
+            }
+            var a = this.data, inv_a = new Array(this.dimension), n = this.dimension, tmp;
+            for (var i = 0; i < n; i++) {
+                inv_a[i] = new Array(n);
+                for (var j = 0; j < n; j++)
+                    inv_a[i][j] = (i == j) ? 1 : 0;
+            }
+            for (i = 0; i < n; i++) {
+                tmp = 1 / a[i * (n + 1)];
+                for (j = 0; j < n; j++) {
+                    a[i * n + j] *= tmp;
+                    inv_a[i][j] *= tmp;
+                }
+                for (j = 0; j < n; j++) {
+                    if (i != j) {
+                        tmp = a[j * n + i];
+                        for (var k = 0; k < n; k++) {
+                            a[j * n + k] -= a[i * n + k] * tmp;
+                            inv_a[j][k] -= inv_a[i][k] * tmp;
+                        }
+                    }
+                }
+            }
+            for (i = 0; i < n; i++) {
+                for (j = 0; j < n; j++) {
+                    this.data[i * n + j] = inv_a[i][j];
+                }
+            }
+            return this;
+        }
+        getRot(axis1, axis2, angle) {
+            if (0 > axis1 || axis1 >= this.dimension || 0 > axis2 || axis2 >= this.dimension) {
+                util_3.showError("あうと おぶ ばうんず");
+                throw "あうと おぶ ばうんず";
+            }
+            this.getId();
+            this.data[axis1 * this.dimension + axis1] = Math.cos(angle);
+            this.data[axis1 * this.dimension + axis2] = -Math.sin(angle);
+            this.data[axis2 * this.dimension + axis1] = Math.sin(angle);
+            this.data[axis2 * this.dimension + axis2] = Math.cos(angle);
+            return this;
+        }
+        scale(v) {
+            if (v.dimension != this.dimension) {
+                util_3.showError("次元が違うエラー");
+                throw "次元が違うエラー";
+            }
+            for (let i = 0; i < this.dimension; i++)
+                for (let j = 0; j < this.dimension - 1; j++)
+                    this.data[j * this.dimension + i] *= v.data[i];
+            return this;
+        }
+        transform(v) {
+            if (v.dimension != this.dimension) {
+                util_3.showError("次元が違うエラー");
+                throw "次元が違うエラー";
+            }
+            for (let i = 0; i < this.dimension; i++)
+                this.data[(this.dimension - 1) * this.dimension + i] += v.data[i];
+            return this;
+        }
+        getPerspective(tonD, fovFirstAxis, aspects, near, far) {
+            var f = Math.tan(Math.PI * 0.5 - 0.5 * fovFirstAxis);
+            if (tonD != aspects.length + 1 || tonD >= this.dimension) {
+                util_3.showError("次元が違うエラー");
+                throw "次元が違うエラー";
+            }
+            this.getId();
+            for (let y = 0; y < tonD; y++) {
+                this.data[y * this.dimension + y] = y == 0 ? fovFirstAxis : fovFirstAxis / aspects[y - 1];
+            }
+            this.data[tonD * this.dimension + tonD] = (near + far) / (near - far);
+            this.data[tonD * this.dimension + (this.dimension - 1)] = -1;
+            this.data[(this.dimension - 1) * this.dimension + tonD] = near * far / (near - far) * 2;
+            this.data[(this.dimension - 1) * this.dimension + (this.dimension - 1)] = 0;
+            return this;
+        }
+        mapping(d, map) {
+            if (d * d != map.length) {
+                util_3.showError("次元が違うエラー");
+                throw "次元が違うエラー";
+            }
+            var keys = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            var result = map.split("").map(v => this.data[keys.indexOf(v)]);
+            return new Matrix(d, result);
+        }
+    }
+    exports.Matrix = Matrix;
+    class Vector {
+        constructor(d, array) {
+            this.dimension = d;
+            if (array == undefined) {
+                array = new Array(d);
+                for (let i = 0; i < d; i++)
+                    array[i] = 0;
+            }
+            this.data = array;
+            if (array.length != d) {
+                util_3.showError("Matrix.ts 指定されたarrayの長さが合わない。");
+                return;
+            }
+        }
+        addScala(n) {
+            for (let i = 0; i < this.dimension; i++)
+                this.data[i] += n;
+            return this;
+        }
+        mulScala(n) {
+            for (let i = 0; i < this.dimension; i++)
+                this.data[i] *= n;
+            return this;
+        }
+        addVec(v) {
+            if (v.dimension != this.dimension) {
+                util_3.showError("型が違って計算できない");
+                throw "型が違って計算できない";
+            }
+            for (let i = 0; i < this.dimension; i++)
+                this.data[i] += v[i];
+            return this;
+        }
+        mulVec(v) {
+            if (v.dimension != this.dimension) {
+                util_3.showError("型が違って計算できない");
+                throw "型が違って計算できない";
+            }
+            for (let i = 0; i < this.dimension; i++)
+                this.data[i] *= v[i];
+            return this;
+        }
+        distance() {
+            var a = 0;
+            for (var i = 0; i < this.dimension; i++)
+                a += this.data[i] * this.data[i];
+            return Math.sqrt(a);
+        }
+        ;
+        item(i) {
+            if (0 > i || i >= this.dimension) {
+                util_3.showError("あうと おぶ ばうんず");
+                throw "あうと おぶ ばうんず";
+            }
+            return this.data[i];
+        }
+        clone() {
+            var _data = new Array(this.dimension);
+            for (let i = 0; i < this.dimension; i++)
+                _data[i] = this.data[i];
+            return new Vector(this.dimension, _data);
+        }
+    }
+    exports.Vector = Vector;
+});
+define("node_modules/@types/twgl.js/index", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+});
+define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/browser/util", "src/lib/browser/dom", "src/lib/browser/logger", "src/lib/browser/webgl", "src/lib/common/util", "src/lib/common/matrix-vector", "node_modules/@types/twgl.js/index", "src/lib/browser/doc-loaded-listener"], function (require, exports, fps_1, util_4, dom_1, logger_1, webgl_1, util_5, matrix_vector_1, index_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    index_1.twgl = window["twgl"];
+    exports.M = matrix_vector_1.Matrix, exports.V = matrix_vector_1.Vector;
     var programInfo, bufferInfo, tex;
     var FPSMeter = new fps_1.FPS([(fps) => exports.log({ FPS: fps })], 60);
     function nA(len) {
@@ -326,7 +588,8 @@ define("index", ["require", "exports", "lib/browser/fps", "lib/browser/util", "l
     const arrays = {
         position: {
             numComponents: dim,
-            data: [].concat(...nA(dim * dim).map((_, i) => nA(dim).map((_, j) => i & (1 << j) ? 1 : -1)))
+            data: [].concat(...nA(dim * dim).map((_, i) => nA(dim).map((_, j) => i & (1 << j) ? 1 : -1))),
+            type: Float32Array
         },
         indices: {
             numComponents: 3,
@@ -340,19 +603,21 @@ define("index", ["require", "exports", "lib/browser/fps", "lib/browser/util", "l
                                 result.push([i + (1 << k) + (1 << j), i + (1 << k), i + (1 << j)]);
                             }
                 return [].concat(...result);
-            })()
+            })(),
+            type: Uint16Array
         },
         texcoord: {
             numComponents: 2,
             data: [].concat(...nA(dim * dim).map((_, i) => {
                 var tmp = nA(dim).map((_, j) => i & (1 << j) ? 1 : 0);
                 return [(tmp[0] + tmp[2]) & 1, (tmp[1] + tmp[2]) & 1];
-            }))
+            })),
+            type: Float32Array
         }
     };
-    console.log(arrays);
     const uniforms = {
-        u_diffuse: {}
+        u_diffuse: {},
+        u_worldViewProjection: {}
     };
     function init() {
         exports.log = logger_1.getLogger(dom_1.ge("log"), 30, false);
@@ -363,15 +628,15 @@ define("index", ["require", "exports", "lib/browser/fps", "lib/browser/util", "l
         {
             let _gl = webgl_1.initWebGL(exports.canvas);
             if (_gl == null) {
-                util_4.showError("WebGLは使えません。フォールバックもありません。死んでます。ほかのブラウザーをお試しください。");
+                util_5.showError("WebGLは使えません。フォールバックもありません。死んでます。ほかのブラウザーをお試しください。");
                 return;
             }
             exports.gl = _gl;
         }
-        programInfo = twgl.createProgramInfo(exports.gl, ["vs", "fs"]);
-        bufferInfo = twgl.createBufferInfoFromArrays(exports.gl, arrays);
+        programInfo = index_1.twgl.createProgramInfo(exports.gl, ["vs", "fs"]);
+        bufferInfo = index_1.twgl.createBufferInfoFromArrays(exports.gl, arrays);
         console.log(bufferInfo);
-        tex = twgl.createTexture(exports.gl, {
+        tex = index_1.twgl.createTexture(exports.gl, {
             min: exports.gl.NEAREST,
             mag: exports.gl.NEAREST,
             src: [
@@ -385,31 +650,30 @@ define("index", ["require", "exports", "lib/browser/fps", "lib/browser/util", "l
     }
     function onTick(ticks, time) {
         time *= 0.001;
-        twgl.resizeCanvasToDisplaySize(exports.gl.canvas);
+        index_1.twgl.resizeCanvasToDisplaySize(exports.gl.canvas);
         exports.gl.viewport(0, 0, exports.gl.canvas.width, exports.gl.canvas.height);
         exports.gl.enable(exports.gl.BLEND);
         exports.gl.blendFunc(exports.gl.ONE, exports.gl.ONE);
         exports.gl.clear(exports.gl.COLOR_BUFFER_BIT | exports.gl.DEPTH_BUFFER_BIT);
-        const fov = 30 * Math.PI / 180;
-        const aspect = exports.gl.canvas.clientWidth / exports.gl.canvas.clientHeight;
-        const zNear = 0.5;
-        const zFar = 10;
-        const projection = twgl.m4.perspective(fov, aspect, zNear, zFar);
-        const eye = [1, 4, -6];
-        const target = [0, 0, 0];
-        const up = [0, 1, 0];
-        const camera = twgl.m4.lookAt(eye, target, up);
-        const view = twgl.m4.inverse(camera);
-        const viewProjection = twgl.m4.multiply(projection, view);
-        const world = twgl.m4.rotationY(time);
-        uniforms.u_worldViewProjection = twgl.m4.multiply(viewProjection, world);
+        const fov = 60 * Math.PI / 180;
+        const aspect = exports.gl.canvas.clientHeight / exports.gl.canvas.clientWidth;
+        uniforms.u_worldViewProjection = new exports.M(5).getId()
+            .mulMat(new exports.M(5).getRot(0, 1, Math.PI / 12))
+            .mulMat(new exports.M(5).getRot(1, 2, Math.PI / 12))
+            .mulMat(new exports.M(5).getRot(2, 0, Math.PI / 12))
+            .mulMat(new exports.M(5).getRot(0, 2, time))
+            .transform(new exports.V(5, [0, 0, -5, 0, 0]))
+            .mulMat(new exports.M(5).getPerspective(2, fov, [aspect], 0.1, 10))
+            .mapping(4, "01245679ABCEFGHJ")
+            .data;
+        exports.tmmmm = new exports.M(4, uniforms.u_worldViewProjection);
         exports.gl.useProgram(programInfo.program);
-        twgl.setBuffersAndAttributes(exports.gl, programInfo, bufferInfo);
-        twgl.setUniforms(programInfo, uniforms);
+        index_1.twgl.setBuffersAndAttributes(exports.gl, programInfo, bufferInfo);
+        index_1.twgl.setUniforms(programInfo, uniforms);
         exports.gl.drawElements(exports.gl.TRIANGLES, bufferInfo.numElements, exports.gl.UNSIGNED_SHORT, 0);
         FPSMeter.tick();
         return false;
     }
-    function main() { util_3.eventloop(init, onTick); }
+    function main() { util_4.eventloop(init, onTick); }
     exports.main = main;
 });

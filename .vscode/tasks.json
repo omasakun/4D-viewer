@@ -6,7 +6,7 @@
 		{
 			"label": "TypeScript Watch",
 			"type": "shell",
-			"command": "tsc -watch -p ./",
+			"command": "tsc -watch -p ./typescript.json",
 			"isBackground": true,
 			"presentation": {
 				"reveal": "never"

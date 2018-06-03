@@ -1,4 +1,3 @@
-//// <reference path="../node_modules/@types/twgl.js/index.d.ts" /> 
 import "./lib/browser/doc-loaded-listener";
 import { FPS } from "./lib/browser/fps";
 import { eventloop } from "./lib/browser/util";
@@ -6,10 +5,14 @@ import { ge, setClass2Elms, setClassList } from "./lib/browser/dom";
 import { Logger, getLogger } from "./lib/browser/logger";
 import { initWebGL } from "./lib/browser/webgl";
 import { showError } from "./lib/common/util";
-//import { Matrix, Vector } from "./matrix-vector";
+import { Matrix, Vector } from "./lib/common/matrix-vector";
+import { twgl } from "../node_modules/@types/twgl.js/index"; // http://twgljs.org/docs/
 
-//import { twgl } from "../node_modules/@types/twgl.js/index"; // http://twgljs.org/docs/ */
-export var gl: WebGLRenderingContext, canvas: HTMLCanvasElement, canvasParent: HTMLDivElement, log: Logger;//, mat = Matrix, vec = Vector;
+
+//@ts-ignore // Force to load twgl.js
+twgl = window["twgl"] as any;
+
+export var gl: WebGLRenderingContext, canvas: HTMLCanvasElement, canvasParent: HTMLDivElement, log: Logger, M = Matrix, V = Vector, tmmmm;
 var programInfo: twgl.ProgramInfo, bufferInfo: twgl.BufferInfo, tex: WebGLTexture;
 var FPSMeter = new FPS([(fps) => log({ FPS: fps })], 60);
 function nA(len: number) {
@@ -19,7 +22,8 @@ const dim = 4;
 const arrays = {
 	position: {
 		numComponents: dim,
-		data: ([] as number[]).concat(...nA(dim * dim).map((_, i) => nA(dim).map((_, j) => i & (1 << j) ? 1 : -1))) // TODO: High cost
+		data: ([] as number[]).concat(...nA(dim * dim).map((_, i) => nA(dim).map((_, j) => i & (1 << j) ? 1 : -1))), // TODO: High cost
+		type: Float32Array
 	},
 	indices: {
 		numComponents: 3, // Triangles
@@ -34,7 +38,8 @@ const arrays = {
 							result.push([i + (1 << k) + (1 << j), i + (1 << k), i + (1 << j)]);
 						}
 			return ([] as number[]).concat(...result);
-		})()
+		})(),
+		type: Uint16Array
 	},
 	texcoord: {
 		numComponents: 2,
@@ -42,12 +47,14 @@ const arrays = {
 			var tmp = nA(dim).map((_, j) => i & (1 << j) ? 1 : 0);//.reduce((pv, cv) => pv + cv, 0) % 4;
 			// console.log(tmp); // TODO: テクスチャのつなぎ目が見える件について
 			return [(tmp[0] + tmp[2]) & 1, (tmp[1] + tmp[2]) & 1];
-		}))
+		})),
+		type: Float32Array
 	}
 };
-console.log(arrays);
+// console.log(arrays);
 const uniforms = {
-	u_diffuse: {} as WebGLTexture // set @ init()
+	u_diffuse: {} as WebGLTexture, // set @ init()
+	u_worldViewProjection: {} as twgl.Mat4
 };
 
 function init() {
@@ -96,9 +103,10 @@ function onTick(ticks: number, time: number): boolean {
 	gl.blendFunc(gl.ONE, gl.ONE);
 	//gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	const fov = 30 * Math.PI / 180;
-	const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-	const zNear = 0.5;
+	const fov = 60 * Math.PI / 180;
+	const aspect = gl.canvas.clientHeight / gl.canvas.clientWidth;
+
+	/*const zNear = 0.5;
 	const zFar = 10;
 	const projection = twgl.m4.perspective(fov, aspect, zNear, zFar);
 	const eye = [1, 4, -6];
@@ -108,7 +116,17 @@ function onTick(ticks: number, time: number): boolean {
 	const view = twgl.m4.inverse(camera);
 	const viewProjection = twgl.m4.multiply(projection, view);
 	const world = twgl.m4.rotationY(time);
-	uniforms.u_worldViewProjection = twgl.m4.multiply(viewProjection, world);
+	uniforms.u_worldViewProjection = twgl.m4.multiply(viewProjection, world);*/
+	uniforms.u_worldViewProjection = new M(5).getId()
+		.mulMat(new M(5).getRot(0, 1, Math.PI / 12))
+		.mulMat(new M(5).getRot(1, 2, Math.PI / 12))
+		.mulMat(new M(5).getRot(2, 0, Math.PI / 12))
+		.mulMat(new M(5).getRot(0, 2, time))
+		.transform(new V(5, [0, 0, -5, 0, 0]))
+		.mulMat(new M(5).getPerspective(2, fov, [aspect], 0.1, 10))
+		.mapping(4,"01245679ABCEFGHJ")
+		.data;
+	tmmmm = new M(4, uniforms.u_worldViewProjection);
 	gl.useProgram(programInfo.program);
 	twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
 	twgl.setUniforms(programInfo, uniforms);

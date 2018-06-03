@@ -1,5 +1,5 @@
-import { DEBUG_MODE } from './common-setting';
-import { showError } from './lib/common/util';
+import { DEBUG_MODE } from '../../common-setting';
+import { showError } from 'common/util';
 // Caution: 計算後、計算前のオブジェクトは破壊される場合があります。
 /** dataの格納順は、
  * [[ 0  4  8 12]
@@ -7,6 +7,7 @@ import { showError } from './lib/common/util';
  *  [ 2  6 10 14]
  *  [ 3  7 11 15]]
  * のような順。やっぱりWebGLは癖が強い
+ * get** は、今の行列の状態を完全に無視した挙動をする。
  */
 export class Matrix {
 	data: number[];
@@ -80,7 +81,7 @@ export class Matrix {
 		}
 		return this.data[x * this.dimension + y];
 	}
-	id(): this {
+	getId(): this {
 		for (let i = 0; i < this.dimension * this.dimension; i++)
 			this.data[i] = i % (this.dimension + 1) == 0 ? 1 : 0;
 		//this.data[i] = (i % this.dimension) == ((i / this.dimension) << 0) ? 1 : 0;
@@ -139,6 +140,67 @@ export class Matrix {
 		}
 		// ここまで http://thira.plavox.info/blog/2008/06/_c.html
 		return this;
+	}
+	/* for nD CG */
+	getRot(axis1: number, axis2: number, angle: number): this {
+		if (0 > axis1 || axis1 >= this.dimension || 0 > axis2 || axis2 >= this.dimension) {
+			showError("あうと おぶ ばうんず");
+			throw "あうと おぶ ばうんず";
+		}
+		this.getId();
+		//this.data[x * this.dimension + y];
+		this.data[axis1 * this.dimension + axis1] = Math.cos(angle);
+		this.data[axis1 * this.dimension + axis2] = -Math.sin(angle);
+		this.data[axis2 * this.dimension + axis1] = Math.sin(angle);
+		this.data[axis2 * this.dimension + axis2] = Math.cos(angle);
+		return this;
+	}
+	scale(v: Vector): this {
+		if (v.dimension != this.dimension) {
+			showError("次元が違うエラー");
+			throw "次元が違うエラー";
+		}
+		for (let i = 0; i < this.dimension; i++)
+			for (let j = 0; j < this.dimension - 1; j++)
+				this.data[j * this.dimension + i] *= v.data[i];
+		return this;
+	}
+	transform(v: Vector): this {
+		if (v.dimension != this.dimension) {
+			showError("次元が違うエラー");
+			throw "次元が違うエラー";
+		}
+		for (let i = 0; i < this.dimension; i++)
+			this.data[(this.dimension - 1) * this.dimension + i] += v.data[i];
+		return this;
+	}
+	/** 最後の行には1が入っていることが前提の前提です */
+	getPerspective(tonD: number, fovFirstAxis: number, aspects: number[], near: number, far: number): this {
+		var f = Math.tan(Math.PI * 0.5 - 0.5 * fovFirstAxis);
+		if (tonD != aspects.length + 1 || tonD >= this.dimension) {
+			showError("次元が違うエラー");
+			throw "次元が違うエラー";
+		}
+		this.getId();
+		//this.data[x * this.dimension + y];
+		for (let y = 0; y < tonD; y++) {
+			this.data[y * this.dimension + y] = y == 0 ? fovFirstAxis : fovFirstAxis / aspects[y - 1];
+		}
+		this.data[tonD * this.dimension + tonD] = (near + far) / (near - far);
+		this.data[tonD * this.dimension + (this.dimension - 1)] = -1;
+		this.data[(this.dimension - 1) * this.dimension + tonD] = near * far / (near - far) * 2;
+		this.data[(this.dimension - 1) * this.dimension + (this.dimension - 1)] = 0;
+		return this;
+	}
+	/** for temporal use */
+	mapping(d: number, map: string):Matrix {
+		if (d * d != map.length) {
+			showError("次元が違うエラー");
+			throw "次元が違うエラー";
+		}
+		var keys = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+		var result = map.split("").map(v => this.data[keys.indexOf(v)]);
+		return new Matrix(d, result);
 	}
 }
 /** 縦に長い行列 */
