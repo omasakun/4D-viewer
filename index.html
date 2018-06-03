@@ -8,6 +8,7 @@
 	<meta name="author" content="omasakun">
 	<title>4D Viewer</title>
 	<link rel="stylesheet" href="common/common.css">
+	<script src="./node_modules/twgl.js/dist/4.x/twgl-full.js"></script>
 	<script src="./node_modules/almond/almond.js"></script>
 	<script src="./index.js"></script>
 	<script>
@@ -23,7 +24,7 @@
 		}
 
 		#log {
-			color:#333;
+			color: #333;
 			background-color: #EEE;
 			/*white-space: pre-wrap;*/
 			opacity: 0.8;
@@ -33,6 +34,7 @@
 			font-size: 0.9em;
 			font-family: monospace;
 		}
+
 		/* something */
 	</style>
 </head>
@@ -44,6 +46,25 @@
 		</div>
 		<pre id="log" class="scrollX scrollY"></pre>
 	</div>
+	<script id="vs" type="x-shader/x-vertex">
+		uniform mat4 u_worldViewProjection;
+		attribute vec4 position;
+		attribute vec2 texcoord;
+		varying vec2 v_texCoord;
+		void main() {
+			v_texCoord = texcoord;
+			gl_Position = u_worldViewProjection * position;
+		}
+	</script>
+
+	<script id="fs" type="x-shader/x-fragment">
+		precision mediump float;
+		varying vec2 v_texCoord;
+		uniform sampler2D u_diffuse;
+		void main() {
+			gl_FragColor = texture2D(u_diffuse, v_texCoord);
+		}
+	</script>
 	<style>
 		@import url('https://fonts.googleapis.com/earlyaccess/notosansjapanese.css');
 		@import url('https://fonts.googleapis.com/css?family=Open+Sans:300,700');

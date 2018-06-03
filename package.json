@@ -6,7 +6,11 @@
   "author": "omasakun",
   "license": "MIT",
   "dependencies": {
+    "almond": "^0.3.3",
+    "twgl.js":"git+https://github.com/greggman/twgl.js.git#master"
+  },
+  "devDependencies": {
     "google-closure-compiler": "^20180402.0.0",
-    "almond":"^0.3.3"
+    "@types/twgl.js":"git+https://gist.github.com/4f8eb25b123b2c5627034f797834f949.git"
   }
 }
