@@ -186,16 +186,35 @@ export class Matrix {
 		this.getId();
 		//this.data[x * this.dimension + y];
 		for (let y = 0; y < tonD; y++) {
-			this.data[y * this.dimension + y] = y == 0 ? fovFirstAxis : fovFirstAxis / aspects[y - 1];
+			this.data[y * this.dimension + y] = y == 0 ? f : f / aspects[y - 1];
 		}
 		// tonD番目の要素を計算するための式
-		this.data[tonD * this.dimension + tonD] = 2 / (far - near);
-		this.data[oneAxis * this.dimension + tonD] = far / (near - far);
+		this.data[tonD    * this.dimension + tonD] = 0;//2 / (far - near);
+		this.data[oneAxis * this.dimension + tonD] = 1;// far / (near - far);
 		// devNumAxis番目の要素を計算するための式
-		this.data[tonD * this.dimension + devNumAxis] = 1;
+		this.data[tonD       * this.dimension + devNumAxis] = 1;
 		this.data[devNumAxis * this.dimension + devNumAxis] = 0;
 		return this;
-	}
+	}	
+	/*getPerspective(tonD: number, fovFirstAxis: number, aspects: number[], near: number, far: number, oneAxis: number, devNumAxis: number): this {
+		var f = Math.tan(Math.PI * 0.5 - 0.5 * fovFirstAxis);
+		if (tonD != aspects.length + 1 || tonD >= this.dimension) {
+			showError("次元が違うエラー");
+			throw "次元が違うエラー";
+		}
+		this.getId();
+		//this.data[x * this.dimension + y];
+		for (let y = 0; y < tonD; y++) {
+			this.data[y * this.dimension + y] = y == 0 ? f : f / aspects[y - 1];
+		}
+		// tonD番目の要素を計算するための式
+		this.data[tonD * this.dimension + tonD] = -1; //2 / (far - near);
+		this.data[oneAxis * this.dimension + tonD] = (near + far) / (near - far); //far / (near - far);
+		// devNumAxis番目の要素を計算するための式
+		this.data[tonD * this.dimension + devNumAxis] = near * far / (near - far) * 2 //1;
+		this.data[devNumAxis * this.dimension + devNumAxis] = 0;
+		return this;
+	}*/
 	slice(x1: number, x2: number, y1: number, y2: number) {
 		if (x1 > x2 || y1 > y2 || x1 < 0 || y1 < 0 || x2 >= this.dimension || y2 >= this.dimension) {
 			showError("あうと おぶ ばうんず");
@@ -218,6 +237,18 @@ export class Matrix {
 		var keys = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 		var result = map.split("").map(v => this.data[keys.indexOf(v)]);
 		return new Matrix(d, result);
+	}
+	toString() {
+		var result = [""] as string[];
+		for (let y = 0; y < this.dimension; y++) {
+			var tmp = [] as string[];
+			for (let x = 0; x < this.dimension; x++) {
+				var n = this.item(x, y);
+				tmp.push((n < 0 ? "-" : " ") + Math.abs(n).toFixed(4));
+			}
+			result.push(tmp.join(" | "));
+		}
+		return result.join("\n");
 	}
 }
 /** 縦に長い行列 */

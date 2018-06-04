@@ -486,10 +486,10 @@ define("src/lib/common/matrix-vector", ["require", "exports", "src/common-settin
             }
             this.getId();
             for (let y = 0; y < tonD; y++) {
-                this.data[y * this.dimension + y] = y == 0 ? fovFirstAxis : fovFirstAxis / aspects[y - 1];
+                this.data[y * this.dimension + y] = y == 0 ? f : f / aspects[y - 1];
             }
-            this.data[tonD * this.dimension + tonD] = 2 / (far - near);
-            this.data[oneAxis * this.dimension + tonD] = far / (near - far);
+            this.data[tonD * this.dimension + tonD] = 0;
+            this.data[oneAxis * this.dimension + tonD] = 1;
             this.data[tonD * this.dimension + devNumAxis] = 1;
             this.data[devNumAxis * this.dimension + devNumAxis] = 0;
             return this;
@@ -515,6 +515,18 @@ define("src/lib/common/matrix-vector", ["require", "exports", "src/common-settin
             var keys = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
             var result = map.split("").map(v => this.data[keys.indexOf(v)]);
             return new Matrix(d, result);
+        }
+        toString() {
+            var result = [""];
+            for (let y = 0; y < this.dimension; y++) {
+                var tmp = [];
+                for (let x = 0; x < this.dimension; x++) {
+                    var n = this.item(x, y);
+                    tmp.push((n < 0 ? "-" : " ") + Math.abs(n).toFixed(4));
+                }
+                result.push(tmp.join(" | "));
+            }
+            return result.join("\n");
         }
     }
     exports.Matrix = Matrix;
@@ -677,17 +689,18 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
             .mulMat(new exports.M(6).getRot(0, 1, Math.PI / 12))
             .mulMat(new exports.M(6).getRot(1, 2, Math.PI / 12))
             .mulMat(new exports.M(6).getRot(2, 0, Math.PI / 12))
-            .mulMat(new exports.M(6).getRot(0, 2, time))
-            .mulMat(new exports.M(6).getRot(2, 3, time))
-            .transform(new exports.V(6, [0, 0, 3, 3, 0, 0]));
-        let fullMat = tmpMat
+            .scale(new exports.V(6, [1, 1, 1, 1, 1, 1]))
+            .transform(new exports.V(6, [5, (time % 10) * 6 - 30, 5, 5, 0, 0]));
+        exports.log((time % 10) * 6 - 4);
+        let fullMat = tmpMat.clone()
             .mulMat(new exports.M(6).getPerspective(3, fov, [1, 1], 0.1, 10, 5, 5))
             .mulMat(new exports.M(6).getPerspective(2, fov, [aspect], 0.1, 10, 4, 4));
-        uniforms.u_worldViewProjection_00a = fullMat.slice(0, 3, 0, 3);
-        uniforms.u_worldViewProjection_01a = fullMat.slice(2, 5, 0, 3);
-        uniforms.u_worldViewProjection_10a = fullMat.slice(0, 3, 2, 5);
-        uniforms.u_worldViewProjection_11a = fullMat.slice(4, 5, 4, 5);
+        uniforms.u_worldViewProjection_00a = fullMat.slice(0, 2, 0, 2);
+        uniforms.u_worldViewProjection_10a = fullMat.slice(3, 5, 0, 2);
+        uniforms.u_worldViewProjection_01a = fullMat.slice(0, 2, 3, 5);
+        uniforms.u_worldViewProjection_11a = fullMat.slice(3, 5, 3, 5);
         exports.tmmmm = uniforms;
+        exports.tmmmm = tmpMat.clone();
         exports.gl.useProgram(programInfo.program);
         index_1.twgl.setBuffersAndAttributes(exports.gl, programInfo, bufferInfo);
         index_1.twgl.setUniforms(programInfo, uniforms);
