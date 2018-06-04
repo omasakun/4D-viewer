@@ -604,7 +604,9 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
     Object.defineProperty(exports, "__esModule", { value: true });
     index_1.twgl = window["twgl"];
     exports.M = matrix_vector_1.Matrix, exports.V = matrix_vector_1.Vector;
-    var programInfo, bufferInfo, tex;
+    var programInfo, bufferInfo, cubeTex;
+    var stereo_programInfo, stereo_bufferInfo;
+    var framebufferInfo_left, framebufferInfo_right;
     var FPSMeter = new fps_1.FPS([(fps) => exports.log({ FPS: fps })], 60);
     function nA(len) {
         return ".".repeat(len).split("");
@@ -640,12 +642,34 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
             type: Float32Array
         }
     };
+    const stereo_arrays = {
+        position: {
+            numComponents: 2,
+            data: [].concat([-1, -1], [-1, 1], [0, -1], [0, 1], [0, -1], [0, 1], [1, -1], [1, 1]),
+            type: Float32Array
+        },
+        indices: {
+            numComponents: 3,
+            data: [].concat([0, 1, 2], [1, 2, 3], [4, 5, 6], [5, 6, 7]),
+            type: Uint16Array
+        },
+        texcoord: {
+            numComponents: 3,
+            data: [].concat([0, 0, -1], [0, 1, -1], [1, 0, -1], [1, 1, -1], [0, 0, 1], [0, 1, 1], [1, 0, 1], [1, 1, 1]),
+            type: Float32Array
+        }
+    };
     const uniforms = {
         u_diffuse: {},
-        u_worldViewProjection_00a: [],
-        u_worldViewProjection_01a: [],
-        u_worldViewProjection_10a: [],
-        u_worldViewProjection_11a: [],
+        u_worldViewProjectionA: [],
+        u_worldViewProjectionB: [],
+        u_zRange: [],
+        u_wRange: [],
+        u_xyTanInv: []
+    };
+    const stereo_uniforms = {
+        u_texA: {},
+        u_texB: {}
     };
     function init() {
         exports.log = logger_1.getLogger(dom_1.ge("log"), 30, false);
@@ -663,8 +687,16 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
         }
         programInfo = index_1.twgl.createProgramInfo(exports.gl, ["vs", "fs"]);
         bufferInfo = index_1.twgl.createBufferInfoFromArrays(exports.gl, arrays);
-        console.log(bufferInfo);
-        tex = index_1.twgl.createTexture(exports.gl, {
+        stereo_programInfo = index_1.twgl.createProgramInfo(exports.gl, ["stereo-vs", "stereo-fs"]);
+        stereo_bufferInfo = index_1.twgl.createBufferInfoFromArrays(exports.gl, stereo_arrays);
+        var onResize = () => {
+            framebufferInfo_left = index_1.twgl.createFramebufferInfo(exports.gl, undefined, 1024, 1024);
+            framebufferInfo_right = index_1.twgl.createFramebufferInfo(exports.gl, undefined, 1024, 1024);
+        };
+        onResize();
+        stereo_uniforms.u_texA = framebufferInfo_left.attachments[0];
+        stereo_uniforms.u_texB = framebufferInfo_right.attachments[0];
+        cubeTex = index_1.twgl.createTexture(exports.gl, {
             min: exports.gl.NEAREST,
             mag: exports.gl.NEAREST,
             src: [
@@ -674,37 +706,56 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
                 128, 128, 128, 255
             ],
         });
-        uniforms.u_diffuse = tex;
+        uniforms.u_diffuse = cubeTex;
     }
     function onTick(ticks, time) {
         time *= 0.001;
         index_1.twgl.resizeCanvasToDisplaySize(exports.gl.canvas);
-        exports.gl.viewport(0, 0, exports.gl.canvas.width, exports.gl.canvas.height);
         exports.gl.enable(exports.gl.BLEND);
         exports.gl.blendFunc(exports.gl.ONE, exports.gl.ONE);
         exports.gl.clear(exports.gl.COLOR_BUFFER_BIT | exports.gl.DEPTH_BUFFER_BIT);
-        const fov = 60 * Math.PI / 180;
-        const aspect = exports.gl.canvas.clientHeight / exports.gl.canvas.clientWidth;
-        let tmpMat = new exports.M(6).getId()
-            .mulMat(new exports.M(6).getRot(0, 1, Math.PI / 12))
-            .mulMat(new exports.M(6).getRot(1, 2, Math.PI / 12))
-            .mulMat(new exports.M(6).getRot(2, 0, Math.PI / 12))
-            .scale(new exports.V(6, [1, 1, 1, 1, 1, 1]))
-            .transform(new exports.V(6, [5, (time % 10) * 6 - 30, 5, 5, 0, 0]));
-        exports.log((time % 10) * 6 - 4);
-        let fullMat = tmpMat.clone()
-            .mulMat(new exports.M(6).getPerspective(3, fov, [1, 1], 0.1, 10, 5, 5))
-            .mulMat(new exports.M(6).getPerspective(2, fov, [aspect], 0.1, 10, 4, 4));
-        uniforms.u_worldViewProjection_00a = fullMat.slice(0, 2, 0, 2);
-        uniforms.u_worldViewProjection_10a = fullMat.slice(3, 5, 0, 2);
-        uniforms.u_worldViewProjection_01a = fullMat.slice(0, 2, 3, 5);
-        uniforms.u_worldViewProjection_11a = fullMat.slice(3, 5, 3, 5);
+        const fov = 120 * Math.PI / 180;
+        const aspect = (exports.gl.canvas.clientWidth / 2) / exports.gl.canvas.clientHeight;
+        let tmpMat = new exports.M(5).getId()
+            .mulMat(new exports.M(5).getRot(0, 1, Math.PI / 12))
+            .mulMat(new exports.M(5).getRot(1, 2, Math.PI / 12))
+            .mulMat(new exports.M(5).getRot(2, 0, Math.PI / 12))
+            .mulMat(new exports.M(5).getRot(0, 2, time))
+            .mulMat(new exports.M(5).getRot(1, 3, time))
+            .scale(new exports.V(5, [1, 1, 1, 1, 1]))
+            .transform(new exports.V(5, [-1, 0, 3, 3.7, 0]));
+        uniforms.u_worldViewProjectionA = tmpMat.slice(0, 3, 0, 3);
+        uniforms.u_worldViewProjectionB = tmpMat.slice(4, 4, 0, 3);
+        uniforms.u_zRange = [0.1, 10];
+        uniforms.u_wRange = [0.1, 10];
+        const f = Math.tan(Math.PI * 0.5 - 0.5 * fov);
+        uniforms.u_xyTanInv = [f * aspect, f];
         exports.tmmmm = uniforms;
-        exports.tmmmm = tmpMat.clone();
+        exports.tmmmm.mat = tmpMat.clone();
         exports.gl.useProgram(programInfo.program);
         index_1.twgl.setBuffersAndAttributes(exports.gl, programInfo, bufferInfo);
+        index_1.twgl.bindFramebufferInfo(exports.gl, framebufferInfo_left);
+        exports.gl.enable(exports.gl.BLEND);
+        exports.gl.blendFunc(exports.gl.ONE, exports.gl.ONE);
+        exports.gl.clear(exports.gl.COLOR_BUFFER_BIT | exports.gl.DEPTH_BUFFER_BIT);
         index_1.twgl.setUniforms(programInfo, uniforms);
         exports.gl.drawElements(exports.gl.TRIANGLES, bufferInfo.numElements, exports.gl.UNSIGNED_SHORT, 0);
+        tmpMat.transform(new exports.V(5, [1, 0, 0, 0, 0]));
+        uniforms.u_worldViewProjectionA = tmpMat.slice(0, 3, 0, 3);
+        uniforms.u_worldViewProjectionB = tmpMat.slice(4, 4, 0, 3);
+        index_1.twgl.bindFramebufferInfo(exports.gl, framebufferInfo_right);
+        exports.gl.enable(exports.gl.BLEND);
+        exports.gl.blendFunc(exports.gl.ONE, exports.gl.ONE);
+        exports.gl.clear(exports.gl.COLOR_BUFFER_BIT | exports.gl.DEPTH_BUFFER_BIT);
+        index_1.twgl.setUniforms(programInfo, uniforms);
+        exports.gl.drawElements(exports.gl.TRIANGLES, bufferInfo.numElements, exports.gl.UNSIGNED_SHORT, 0);
+        exports.gl.useProgram(stereo_programInfo.program);
+        index_1.twgl.setBuffersAndAttributes(exports.gl, stereo_programInfo, stereo_bufferInfo);
+        index_1.twgl.bindFramebufferInfo(exports.gl, undefined);
+        index_1.twgl.setUniforms(stereo_programInfo, stereo_uniforms);
+        exports.gl.texParameteri(exports.gl.TEXTURE_2D, exports.gl.TEXTURE_WRAP_S, exports.gl.REPEAT);
+        exports.gl.texParameteri(exports.gl.TEXTURE_2D, exports.gl.TEXTURE_WRAP_T, exports.gl.REPEAT);
+        exports.gl.drawElements(exports.gl.TRIANGLES, stereo_bufferInfo.numElements, exports.gl.UNSIGNED_SHORT, 0);
         FPSMeter.tick();
         return false;
     }
