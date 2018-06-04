@@ -478,7 +478,7 @@ define("src/lib/common/matrix-vector", ["require", "exports", "src/common-settin
                 this.data[(this.dimension - 1) * this.dimension + i] += v.data[i];
             return this;
         }
-        getPerspective(tonD, fovFirstAxis, aspects, near, far) {
+        getPerspective(tonD, fovFirstAxis, aspects, near, far, oneAxis, devNumAxis) {
             var f = Math.tan(Math.PI * 0.5 - 0.5 * fovFirstAxis);
             if (tonD != aspects.length + 1 || tonD >= this.dimension) {
                 util_3.showError("次元が違うエラー");
@@ -488,11 +488,24 @@ define("src/lib/common/matrix-vector", ["require", "exports", "src/common-settin
             for (let y = 0; y < tonD; y++) {
                 this.data[y * this.dimension + y] = y == 0 ? fovFirstAxis : fovFirstAxis / aspects[y - 1];
             }
-            this.data[tonD * this.dimension + tonD] = (near + far) / (near - far);
-            this.data[tonD * this.dimension + (this.dimension - 1)] = -1;
-            this.data[(this.dimension - 1) * this.dimension + tonD] = near * far / (near - far) * 2;
-            this.data[(this.dimension - 1) * this.dimension + (this.dimension - 1)] = 0;
+            this.data[tonD * this.dimension + tonD] = 2 / (far - near);
+            this.data[oneAxis * this.dimension + tonD] = far / (near - far);
+            this.data[tonD * this.dimension + devNumAxis] = 1;
+            this.data[devNumAxis * this.dimension + devNumAxis] = 0;
             return this;
+        }
+        slice(x1, x2, y1, y2) {
+            if (x1 > x2 || y1 > y2 || x1 < 0 || y1 < 0 || x2 >= this.dimension || y2 >= this.dimension) {
+                util_3.showError("あうと おぶ ばうんず");
+                throw "あうと おぶ ばうんず";
+            }
+            var result = [];
+            for (let y = y1; y <= y2; y++) {
+                for (let x = x1; x <= x2; x++) {
+                    result.push(this.data[x * this.dimension + y]);
+                }
+            }
+            return result;
         }
         mapping(d, map) {
             if (d * d != map.length) {
@@ -617,7 +630,10 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
     };
     const uniforms = {
         u_diffuse: {},
-        u_worldViewProjection: {}
+        u_worldViewProjection_00a: [],
+        u_worldViewProjection_01a: [],
+        u_worldViewProjection_10a: [],
+        u_worldViewProjection_11a: [],
     };
     function init() {
         exports.log = logger_1.getLogger(dom_1.ge("log"), 30, false);
@@ -657,16 +673,21 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
         exports.gl.clear(exports.gl.COLOR_BUFFER_BIT | exports.gl.DEPTH_BUFFER_BIT);
         const fov = 60 * Math.PI / 180;
         const aspect = exports.gl.canvas.clientHeight / exports.gl.canvas.clientWidth;
-        uniforms.u_worldViewProjection = new exports.M(5).getId()
-            .mulMat(new exports.M(5).getRot(0, 1, Math.PI / 12))
-            .mulMat(new exports.M(5).getRot(1, 2, Math.PI / 12))
-            .mulMat(new exports.M(5).getRot(2, 0, Math.PI / 12))
-            .mulMat(new exports.M(5).getRot(0, 2, time))
-            .transform(new exports.V(5, [0, 0, -5, 0, 0]))
-            .mulMat(new exports.M(5).getPerspective(2, fov, [aspect], 0.1, 10))
-            .mapping(4, "01245679ABCEFGHJ")
-            .data;
-        exports.tmmmm = new exports.M(4, uniforms.u_worldViewProjection);
+        let tmpMat = new exports.M(6).getId()
+            .mulMat(new exports.M(6).getRot(0, 1, Math.PI / 12))
+            .mulMat(new exports.M(6).getRot(1, 2, Math.PI / 12))
+            .mulMat(new exports.M(6).getRot(2, 0, Math.PI / 12))
+            .mulMat(new exports.M(6).getRot(0, 2, time))
+            .mulMat(new exports.M(6).getRot(2, 3, time))
+            .transform(new exports.V(6, [0, 0, 3, 3, 0, 0]));
+        let fullMat = tmpMat
+            .mulMat(new exports.M(6).getPerspective(3, fov, [1, 1], 0.1, 10, 5, 5))
+            .mulMat(new exports.M(6).getPerspective(2, fov, [aspect], 0.1, 10, 4, 4));
+        uniforms.u_worldViewProjection_00a = fullMat.slice(0, 3, 0, 3);
+        uniforms.u_worldViewProjection_01a = fullMat.slice(2, 5, 0, 3);
+        uniforms.u_worldViewProjection_10a = fullMat.slice(0, 3, 2, 5);
+        uniforms.u_worldViewProjection_11a = fullMat.slice(4, 5, 4, 5);
+        exports.tmmmm = uniforms;
         exports.gl.useProgram(programInfo.program);
         index_1.twgl.setBuffersAndAttributes(exports.gl, programInfo, bufferInfo);
         index_1.twgl.setUniforms(programInfo, uniforms);

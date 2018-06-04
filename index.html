@@ -47,26 +47,32 @@
 		<pre id="log" class="scrollX scrollY"></pre>
 	</div>
 	<script id="vs" type="x-shader/x-vertex">
-		uniform mat4 u_worldViewProjection;
-		attribute vec4 position;
-		attribute vec2 texcoord;
-		varying vec2 v_texCoord;
-		varying float v_diffuse;
-		void main() {
-			vec4 pos = u_worldViewProjection * vec4(position.xyz,1);//(1.5+position.w/2.0));
+		uniform mat4 u_worldViewProjection_00a; 
+		uniform mat4 u_worldViewProjection_01a; 
+		uniform mat4 u_worldViewProjection_10a; 
+		uniform mat2 u_worldViewProjection_11a;
+		attribute vec4 position; 
+		attribute vec2 texcoord; 
+		varying vec2 v_texCoord; 
+		varying float	v_diffuse;
+		void main() { 
+			vec4 pos = u_worldViewProjection_00a * position.xyzw + u_worldViewProjection_01a[2] + u_worldViewProjection_01a[3];//(1.5+position.w/2.0)); 
+			vec2 div = (u_worldViewProjection_10a * position.xyzw).zw + u_worldViewProjection_11a[0]+ u_worldViewProjection_11a[1];//(1.5+position.w/2.0)); 
+			pos.xyz /= div[1]; 
+			// pos.xy /= div[0]; 
 			v_diffuse = 0.4*clamp(dot(pos,vec4(0.0,-1.0,0.0,0.0)),0.1,1.0)+0.4;
-			v_texCoord = texcoord;
-			gl_Position = pos;
+			v_texCoord = texcoord; 
+			gl_Position = vec4(pos.xyz,1.0); 
 		}
 	</script>
 
 	<script id="fs" type="x-shader/x-fragment">
-		precision mediump float;
-		varying vec2 v_texCoord;
-		varying float v_diffuse;		
-		uniform sampler2D u_diffuse;
-		void main() {
-			// if(v_texCoord.y<0.1 || v_texCoord.y>0.9 || v_texCoord.x<0.1 || v_texCoord.x>0.9)discard;
+		precision mediump float; 
+		varying vec2 v_texCoord; 
+		varying float v_diffuse; 
+		uniform sampler2D u_diffuse; 
+		void main() { 
+			//if(v_texCoord.y	<0.1 || v_texCoord.y>0.9 || v_texCoord.x	<0.1 || v_texCoord.x>0.9)discard; 
 			gl_FragColor = vec4(texture2D(u_diffuse, v_texCoord).rgb*v_diffuse,1.0);
 		}
 	</script>

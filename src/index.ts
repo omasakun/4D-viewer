@@ -54,7 +54,10 @@ const arrays = {
 // console.log(arrays);
 const uniforms = {
 	u_diffuse: {} as WebGLTexture, // set @ init()
-	u_worldViewProjection: {} as twgl.Mat4
+	u_worldViewProjection_00a: [] as number[], // mat4x4 (xyzw -> xyzw)
+	u_worldViewProjection_01a: [] as number[], // vec2x4 (1,1  -> xyzw)
+	u_worldViewProjection_10a: [] as number[], // vec4x2 (xyzw -> divFactors)
+	u_worldViewProjection_11a: [] as number[], // vec2x2 (1,1  -> divFactors)
 };
 
 function init() {
@@ -117,16 +120,26 @@ function onTick(ticks: number, time: number): boolean {
 	const viewProjection = twgl.m4.multiply(projection, view);
 	const world = twgl.m4.rotationY(time);
 	uniforms.u_worldViewProjection = twgl.m4.multiply(viewProjection, world);*/
-	uniforms.u_worldViewProjection = new M(5).getId()
-		.mulMat(new M(5).getRot(0, 1, Math.PI / 12))
-		.mulMat(new M(5).getRot(1, 2, Math.PI / 12))
-		.mulMat(new M(5).getRot(2, 0, Math.PI / 12))
-		.mulMat(new M(5).getRot(0, 2, time))
-		.transform(new V(5, [0, 0, -5, 0, 0]))
-		.mulMat(new M(5).getPerspective(2, fov, [aspect], 0.1, 10))
-		.mapping(4,"01245679ABCEFGHJ")
-		.data;
-	tmmmm = new M(4, uniforms.u_worldViewProjection);
+
+	// x, y, z, w, 1, 1 -> x', y', z', w', 1, 1
+	let tmpMat = new M(6).getId()
+		.mulMat(new M(6).getRot(0, 1, Math.PI / 12))
+		.mulMat(new M(6).getRot(1, 2, Math.PI / 12))
+		.mulMat(new M(6).getRot(2, 0, Math.PI / 12))
+		.mulMat(new M(6).getRot(0, 2, time))
+		.mulMat(new M(6).getRot(2, 3, time))
+		.transform(new V(6, [0, 0, 3, 3, 0, 0]));
+	// x, y, z, w, 1, 1 -> x', y', z', w', xy-divFactor, xyz-divFactor
+	let fullMat = tmpMat
+		.mulMat(new M(6).getPerspective(3, fov, [1, 1], 0.1, 10, 5, 5))
+	  .mulMat(new M(6).getPerspective(2, fov, [aspect], 0.1, 10, 4, 4));
+	// console.log(fullMat);
+	//----------------------------------------------- x1 x2 y1 y2
+	uniforms.u_worldViewProjection_00a = fullMat.slice(0, 3, 0, 3);
+	uniforms.u_worldViewProjection_01a = fullMat.slice(2, 5, 0, 3); // fullMat.slice(4, 5, 0, 3)
+	uniforms.u_worldViewProjection_10a = fullMat.slice(0, 3, 2, 5); // fullMat.slice(0, 3, 4, 5)
+	uniforms.u_worldViewProjection_11a = fullMat.slice(4, 5, 4, 5);
+	tmmmm = uniforms;
 	gl.useProgram(programInfo.program);
 	twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
 	twgl.setUniforms(programInfo, uniforms);

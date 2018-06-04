@@ -174,8 +174,10 @@ export class Matrix {
 			this.data[(this.dimension - 1) * this.dimension + i] += v.data[i];
 		return this;
 	}
-	/** 最後の行には1が入っていることが前提の前提です */
-	getPerspective(tonD: number, fovFirstAxis: number, aspects: number[], near: number, far: number): this {
+	/** oneAxis行には1が入っていることが前提の前提です
+	 * tonD=2のときは、x,yの値がdevNumAxis番目の要素で割られることが期待される。
+	 */
+	getPerspective(tonD: number, fovFirstAxis: number, aspects: number[], near: number, far: number, oneAxis: number, devNumAxis: number): this {
 		var f = Math.tan(Math.PI * 0.5 - 0.5 * fovFirstAxis);
 		if (tonD != aspects.length + 1 || tonD >= this.dimension) {
 			showError("次元が違うエラー");
@@ -186,14 +188,29 @@ export class Matrix {
 		for (let y = 0; y < tonD; y++) {
 			this.data[y * this.dimension + y] = y == 0 ? fovFirstAxis : fovFirstAxis / aspects[y - 1];
 		}
-		this.data[tonD * this.dimension + tonD] = (near + far) / (near - far);
-		this.data[tonD * this.dimension + (this.dimension - 1)] = -1;
-		this.data[(this.dimension - 1) * this.dimension + tonD] = near * far / (near - far) * 2;
-		this.data[(this.dimension - 1) * this.dimension + (this.dimension - 1)] = 0;
+		// tonD番目の要素を計算するための式
+		this.data[tonD * this.dimension + tonD] = 2 / (far - near);
+		this.data[oneAxis * this.dimension + tonD] = far / (near - far);
+		// devNumAxis番目の要素を計算するための式
+		this.data[tonD * this.dimension + devNumAxis] = 1;
+		this.data[devNumAxis * this.dimension + devNumAxis] = 0;
 		return this;
 	}
+	slice(x1: number, x2: number, y1: number, y2: number) {
+		if (x1 > x2 || y1 > y2 || x1 < 0 || y1 < 0 || x2 >= this.dimension || y2 >= this.dimension) {
+			showError("あうと おぶ ばうんず");
+			throw "あうと おぶ ばうんず";
+		}
+		var result: number[] = [];
+		for (let y = y1; y <= y2; y++) {
+			for (let x = x1; x <= x2; x++) {
+				result.push(this.data[x * this.dimension + y]);
+			}
+		}
+		return result;
+	}
 	/** for temporal use */
-	mapping(d: number, map: string):Matrix {
+	mapping(d: number, map: string): Matrix {
 		if (d * d != map.length) {
 			showError("次元が違うエラー");
 			throw "次元が違うエラー";
