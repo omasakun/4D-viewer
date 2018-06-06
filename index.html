@@ -21,11 +21,12 @@
 			padding: 0;
 			height: 100%;
 			width: 100%;
+			user-select: none;
 		}
 
 		#log {
-			color: #333;
-			background-color: #EEE;
+			color: #EEE;
+			background-color: #555;
 			/*white-space: pre-wrap;*/
 			opacity: 0.8;
 			padding-left: 0.5em;
@@ -35,6 +36,12 @@
 			font-family: monospace;
 		}
 
+		button{
+			background-color: #EEE;
+		}
+		#control>div>*:not(:first-child){
+			background-color: rgba(0,0,0,0.5);
+		}
 		/* something */
 	</style>
 </head>
@@ -44,10 +51,16 @@
 		<div id="c1-parent" class="fullW fullH cV cCenter center">
 			<canvas id="c1" class="fullW fullH"></canvas>
 		</div>
-		<div id="controls-root" class="stack hide">
-				<pre id="log" class="scrollX scrollY" style="min-width: fit-content"></pre>
+		<pre id="log" class="scrollX scrollY" style="min-width: fit-content;min-height: fit-content"></pre>
+		<div id="control" class="cV center" style="width:100vw">
+			<div>
+				<span style="display:block">
+					<button id="control-title"></button>
+				</span>
+				<input type="number" id="control-input" class="center" style="width:4em;padding:0">
+				<span style="display:block">画面をタップするとこの邪魔な表示の表示・非表示を切り替えられます</span>
+			</div>
 		</div>
-
 	</div>
 	<script id="vs" type="x-shader/x-vertex">
 		uniform mat4 u_L_worldViewBeforeA;
@@ -75,7 +88,7 @@
 		attribute vec2 texcoord; 
 		varying vec2  v_texCoord; 
 		varying float	v_diffuse;
-		varying vec4	v_color;
+		varying vec3	v_color;
 		varying vec4	v_clip;
 		varying vec4	v_pos;
 		void main() { // TODO: z,w ordering / w,zに応じて非描画
@@ -95,7 +108,7 @@
 			}
 			v_diffuse = 0.4*clamp(dot(pos,vec4(0.0,-1.0,0.0,0.0)),0.1,1.0)+0.4;
 			v_texCoord = texcoord; 
-			v_color = vec4(position.wxy,1.0);
+			v_color = (position.wxy+1.5)*vec3(0.15,0.1,0.25)/1.2,1.0;
 			v_pos = pos;
 			gl_Position = vec4(pos.xy,1.0,1.0); // vec4(pos.xyz,1.0) 
 		}
@@ -104,17 +117,19 @@
 		precision mediump float; 
 		varying vec2  v_texCoord; 
 		varying float	v_diffuse;
-		varying vec4	v_color;
+		varying vec3	v_color;
 		varying vec4	v_pos;
 		varying vec4	v_clip;
 		uniform sampler2D u_diffuse; 
 		void main() { 
-			if(v_pos.x < v_clip[0] || v_clip[1] < v_pos.x || v_pos.y < v_clip[2] || v_clip[3] < v_pos.y){
-				gl_FragColor = vec4(0.0,0.0,0.0,0.0);
-			}else{
+			//if(v_pos.x < v_clip[0] || v_clip[1] < v_pos.x || v_pos.y < v_clip[2] || v_clip[3] < v_pos.y){
+			//	gl_FragColor = vec4(0.0,0.0,0.0,0.0);
+			//}else{
+				// edge <= x なら 1.0 : step(edge, x)
 				// gl_FragColor = vec4(texture2D(u_diffuse, v_texCoord).rgb*v_diffuse,1.0);
-				gl_FragColor = vec4((v_color.rgb+1.5)*vec3(0.15,0.1,0.25)/1.2,1.0);
-			}
+				float alpha = step(v_clip[0],v_pos.x)*step(v_pos.x,v_clip[1])*step(v_clip[2],v_pos.y)*step(v_pos.y,v_clip[3]);
+				gl_FragColor = vec4(alpha*v_color,alpha);
+			//}
 		}
 	</script>
 	<style>

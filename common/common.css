@@ -7,7 +7,7 @@
 	cSpace cCenter
 	center
 # Tag
-	h1 button input[type="text"] textarea button.inactive
+	h1 button input[type="text"],input[type="number"] textarea button.inactive
 */
 
 * {
@@ -16,8 +16,8 @@
 }
 
 body {
-	background-color: #EEE;
-	color: #222;
+	background-color: #000;
+	color: #EEE;
 	font-family: "Kokoro", "Rounded Mplus 1c", "Open Sans", 'Noto Sans Japanese', "Yu Gothic", "Meiryo UI", sans-serif;
 	font-weight: 300;
 	margin: 0;
@@ -112,7 +112,7 @@ h1 {
 
 h1::before,
 h1::after {
-	background: linear-gradient(transparent 50%, #AAA 50%, #AAA calc(50% + 2px), transparent calc(50% + 2px));
+	background: linear-gradient(transparent 50%, #555 50%, #555 calc(50% + 2px), transparent calc(50% + 2px));
 	content: "";
 	display: inline-block;
 	flex-grow: 1;
@@ -131,7 +131,7 @@ h1::after {
 	margin-left: 1em;
 }
 
-input[type="text"],
+input[type="text"],input[type="number"],
 button,
 textarea {
 	background-color: transparent;
@@ -142,9 +142,10 @@ textarea {
 	border-radius: 0;
 }
 
-input[type="text"] {
-	border-bottom: solid 1px #222;
+input[type="text"],input[type="number"] {
+	border-bottom: solid 1px #EEE;
 	padding-left: .5em;
+	color: inherit;
 }
 
 button {
@@ -154,18 +155,18 @@ button {
 }
 
 textarea {
-	border: solid 1px #222;
+	border: solid 1px #EEE;
 	padding: .5em;
 }
 
-input[type="text"]:hover,
+input[type="text"],input[type="number"]:hover,
 button:hover,
 textarea:hover {
-	box-shadow: 0 1px 6px -1px #222;
+	box-shadow: 0 1px 6px -1px #EEE;
 }
 
-input[type="text"]:hover,
-input[type="text"]:focus {
+input[type="text"],input[type="number"]:hover,
+input[type="text"],input[type="number"]:focus {
 	border-bottom: solid 1px transparent;
 }
 
@@ -174,16 +175,16 @@ textarea:focus {
 	border: solid 1px transparent;
 }
 
-input[type="text"]:focus,
+input[type="text"],input[type="number"]:focus,
 textarea:focus {
 	box-shadow: initial;
 }
 
 button:not(.inactive):active {
-	box-shadow: 0 0 2px 0 #222;
+	box-shadow: 0 0 2px 0 #EEE;
 }
 
 button.inactive {
-	color: #AAA;
+	color: #555;
 	cursor: default;
 }

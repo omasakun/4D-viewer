@@ -210,10 +210,10 @@ define("src/lib/browser/logger", ["require", "exports", "src/lib/common/util"], 
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     function getLogger(logElm, maxLen, log2console = true) {
+        var output = [];
         return (...objects) => {
             if (log2console)
                 console.log(objects.length == 1 ? objects[0] : objects);
-            var output = logElm.innerText.split("\n");
             var prefix = `${util_1.timeFormat(new Date())}`;
             var blanks = " ".repeat(prefix.length);
             for (let i = 0; i < objects.length; i++) {
@@ -658,6 +658,13 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
         u_wRange: [],
         u_xyTanInv: []
     };
+    var options = {
+        _: [["fov", "[ FOV ]", 1], ["eyeSep4D", "両眼視差", 20], ["eyeSep2D", "目の幅", 20], ["scale", "拡大率", 20]],
+        fov: 60,
+        eyeSep4D: 1,
+        eyeSep2D: 1.2,
+        scale: 2
+    };
     function init() {
         exports.log = logger_1.getLogger(dom_1.ge("log"), 30, false);
         exports.canvasParent = dom_1.ge("c1-parent");
@@ -688,8 +695,42 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
         addEvents();
     }
     function addEvents() {
+        var count = 1;
         exports.canvas.addEventListener("click", () => {
-            dom_1.ge("controls-root").classList.toggle("hide");
+            count = (count + 1) % 3;
+            if (count == 0) {
+                dom_1.ge("control").classList.remove("hide");
+                dom_1.ge("log").classList.add("hide");
+            }
+            else if (count == 1) {
+                dom_1.ge("control").classList.remove("hide");
+                dom_1.ge("log").classList.remove("hide");
+            }
+            else if (count == 2) {
+                dom_1.ge("control").classList.add("hide");
+                dom_1.ge("log").classList.add("hide");
+            }
+        });
+        const cI = dom_1.ge("control-input"), cT = dom_1.ge("control-title");
+        var currentOptionIndex = 0;
+        var updateCT = () => {
+            cT.innerText = options._[currentOptionIndex][1];
+            cI.value = options[options._[currentOptionIndex][0]] * options._[currentOptionIndex][2];
+        };
+        updateCT();
+        cT.addEventListener("click", () => {
+            currentOptionIndex = (currentOptionIndex + 1) % options._.length;
+            updateCT();
+        });
+        cI.addEventListener("keyup", (e) => {
+            if (e.code == "Enter") {
+                options[options._[currentOptionIndex][0]] = Number.parseFloat(cI.value) / options._[currentOptionIndex][2];
+                updateCT();
+            }
+        });
+        cI.addEventListener("mouseup", (e) => {
+            options[options._[currentOptionIndex][0]] = Number.parseFloat(cI.value) / options._[currentOptionIndex][2];
+            updateCT();
         });
     }
     function onTick(ticks, time) {
@@ -699,7 +740,7 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
         exports.gl.enable(exports.gl.BLEND);
         exports.gl.blendFunc(exports.gl.ONE, exports.gl.ONE);
         exports.gl.clear(exports.gl.COLOR_BUFFER_BIT | exports.gl.DEPTH_BUFFER_BIT);
-        const fov = 60 * Math.PI / 180;
+        const fov = options.fov * Math.PI / 180;
         let matTmp = new exports.M(5).getId()
             .mulMat(new exports.M(5).getRot(0, 1, Math.PI / 12))
             .mulMat(new exports.M(5).getRot(1, 2, Math.PI / 12))
@@ -708,15 +749,15 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
             .mulMat(new exports.M(5).getRot(1, 3, time))
             .scale(new exports.V(5, [1, 1, 1, 1, 1]))
             .transform(new exports.V(5, [0, 0, 3, 3, 0]));
-        let matL = matTmp.clone().transform(new exports.V(5, [0 + 0.5, 0, 0, 0, 0]));
-        let matR = matTmp.clone().transform(new exports.V(5, [0 - 0.5, 0, 0, 0, 0]));
+        let matL = matTmp.clone().transform(new exports.V(5, [0 + options.eyeSep4D / 2, 0, 0, 0, 0]));
+        let matR = matTmp.clone().transform(new exports.V(5, [0 - options.eyeSep4D / 2, 0, 0, 0, 0]));
         uniforms.u_L_worldViewBeforeA = matL.slice(0, 3, 0, 3);
         uniforms.u_L_worldViewBeforeB = matL.slice(4, 4, 0, 3);
         uniforms.u_R_worldViewBeforeA = matR.slice(0, 3, 0, 3);
         uniforms.u_R_worldViewBeforeB = matR.slice(4, 4, 0, 3);
-        let matTmpAfter = new exports.M(5).getId().scale(new exports.V(5, [2, 2, 1, 1, 1]));
-        let matLAfter = matTmpAfter.clone().transform(new exports.V(5, [0 - 0.6, 0, 0, 0, 0]));
-        let matRAfter = matTmpAfter.clone().transform(new exports.V(5, [0 + 0.6, 0, 0, 0, 0]));
+        let matTmpAfter = new exports.M(5).getId().scale(new exports.V(5, [options.scale, options.scale, 1, 1, 1]));
+        let matLAfter = matTmpAfter.clone().transform(new exports.V(5, [0 - options.eyeSep2D / 2, 0, 0, 0, 0]));
+        let matRAfter = matTmpAfter.clone().transform(new exports.V(5, [0 + options.eyeSep2D / 2, 0, 0, 0, 0]));
         uniforms.u_L_worldViewAfterA = matLAfter.slice(0, 3, 0, 3);
         uniforms.u_L_worldViewAfterB = matLAfter.slice(4, 4, 0, 3);
         uniforms.u_R_worldViewAfterA = matRAfter.slice(0, 3, 0, 3);

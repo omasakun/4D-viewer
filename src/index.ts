@@ -71,6 +71,13 @@ const uniforms = {
 	u_xyTanInv: [] as number[]            // [xTan,yTan] アスペクト比とかのファクター
 };
 
+var options = {
+	_: [["fov", "[ FOV ]", 1], ["eyeSep4D", "両眼視差", 20], ["eyeSep2D", "目の幅", 20], ["scale", "拡大率", 20]] as [string, string, number][],
+	fov: 60,
+	eyeSep4D: 1,
+	eyeSep2D: 1.2,
+	scale: 2
+}
 function init() {
 	log = getLogger(ge("log") as HTMLPreElement, 30, false);
 	canvasParent = ge("c1-parent") as HTMLDivElement;
@@ -101,8 +108,41 @@ function init() {
 	addEvents();
 }
 function addEvents() {
+	var count = 1;
 	canvas.addEventListener("click", () => {
-		ge("controls-root").classList.toggle("hide");
+		count = (count + 1) % 3;
+		if (count == 0) {
+			ge("control").classList.remove("hide");
+			ge("log").classList.add("hide");
+		} else if (count == 1) {
+			ge("control").classList.remove("hide");
+			ge("log").classList.remove("hide");
+		} else if (count == 2) {
+			ge("control").classList.add("hide");
+			ge("log").classList.add("hide");
+		}
+	});
+	const cI = ge("control-input") as HTMLInputElement, cT = ge("control-title") as HTMLButtonElement;
+
+	var currentOptionIndex = 0;
+	var updateCT = () => {
+		cT.innerText = options._[currentOptionIndex][1];
+		cI.value = options[options._[currentOptionIndex][0]] * options._[currentOptionIndex][2];
+	}
+	updateCT();
+	cT.addEventListener("click", () => {
+		currentOptionIndex = (currentOptionIndex + 1) % options._.length;
+		updateCT();
+	});
+	cI.addEventListener("keyup", (e) => {
+		if (e.code == "Enter") {
+			options[options._[currentOptionIndex][0]] = Number.parseFloat(cI.value) / options._[currentOptionIndex][2];
+			updateCT();
+		}
+	});
+	cI.addEventListener("mouseup", (e) => {
+		options[options._[currentOptionIndex][0]] = Number.parseFloat(cI.value) / options._[currentOptionIndex][2];
+		updateCT();
 	});
 }
 function onTick(ticks: number, time: number): boolean {
@@ -116,7 +156,7 @@ function onTick(ticks: number, time: number): boolean {
 	gl.blendFunc(gl.ONE, gl.ONE);
 	//gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	const fov = 60 * Math.PI / 180;
+	const fov = options.fov * Math.PI / 180;
 
 	// x, y, z, w, 1 -> x', y', z', w'
 	let matTmp = new M(5).getId()
@@ -129,15 +169,15 @@ function onTick(ticks: number, time: number): boolean {
 		.mulMat(new M(5).getRot(1, 3, time))
 		.scale(new V(5, [1, 1, 1, 1, 1]))
 		.transform(new V(5, [0, 0, 3, 3, 0]));
-	let matL = matTmp.clone().transform(new V(5, [0 + 0.5, 0, 0, 0, 0]));
-	let matR = matTmp.clone().transform(new V(5, [0 - 0.5, 0, 0, 0, 0]));
+	let matL = matTmp.clone().transform(new V(5, [0 + options.eyeSep4D / 2, 0, 0, 0, 0]));
+	let matR = matTmp.clone().transform(new V(5, [0 - options.eyeSep4D / 2, 0, 0, 0, 0]));
 	uniforms.u_L_worldViewBeforeA = matL.slice(0, 3, 0, 3);
 	uniforms.u_L_worldViewBeforeB = matL.slice(4, 4, 0, 3);
 	uniforms.u_R_worldViewBeforeA = matR.slice(0, 3, 0, 3);
 	uniforms.u_R_worldViewBeforeB = matR.slice(4, 4, 0, 3);
-	let matTmpAfter = new M(5).getId().scale(new V(5, [2, 2, 1, 1, 1]));
-	let matLAfter = matTmpAfter.clone().transform(new V(5, [0 - 0.6, 0, 0, 0, 0]));
-	let matRAfter = matTmpAfter.clone().transform(new V(5, [0 + 0.6, 0, 0, 0, 0]));
+	let matTmpAfter = new M(5).getId().scale(new V(5, [options.scale, options.scale, 1, 1, 1]));
+	let matLAfter = matTmpAfter.clone().transform(new V(5, [0 - options.eyeSep2D / 2, 0, 0, 0, 0]));
+	let matRAfter = matTmpAfter.clone().transform(new V(5, [0 + options.eyeSep2D / 2, 0, 0, 0, 0]));
 	uniforms.u_L_worldViewAfterA = matLAfter.slice(0, 3, 0, 3);
 	uniforms.u_L_worldViewAfterB = matLAfter.slice(4, 4, 0, 3);
 	uniforms.u_R_worldViewAfterA = matRAfter.slice(0, 3, 0, 3);

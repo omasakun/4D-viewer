@@ -1,9 +1,9 @@
 import { timeFormat } from "../common/util";
 export type Logger = (...objects: any[]) => void;
 export function getLogger(logElm: HTMLPreElement, maxLen: number, log2console = true): Logger {
+	var output: string[] = [];
 	return (...objects: any[]) => {
 		if (log2console) console.log(objects.length == 1 ? objects[0] : objects);
-		var output = logElm.innerText.split("\n");
 		var prefix = `${timeFormat(new Date())}`;
 		var blanks = " ".repeat(prefix.length);
 		for (let i = 0; i < objects.length; i++) {
