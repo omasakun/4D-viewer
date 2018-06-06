@@ -54,11 +54,11 @@
 		<pre id="log" class="scrollX scrollY" style="min-width: fit-content;min-height: fit-content"></pre>
 		<div id="control" class="cV center" style="width:100vw">
 			<div>
-				<span style="display:block">
+				<div>
 					<button id="control-title"></button>
-				</span>
+				</div>
 				<input type="number" id="control-input" class="center" style="width:4em;padding:0">
-				<span style="display:block">画面をタップするとこの邪魔な表示の表示・非表示を切り替えられます</span>
+				<div id="control-info">画面をタップするとこの邪魔な表示の表示・非表示を切り替えられます</div>
 			</div>
 		</div>
 	</div>
@@ -108,7 +108,7 @@
 			}
 			v_diffuse = 0.4*clamp(dot(pos,vec4(0.0,-1.0,0.0,0.0)),0.1,1.0)+0.4;
 			v_texCoord = texcoord; 
-			v_color = (position.wxy+1.5)*vec3(0.15,0.1,0.25)/1.2,1.0;
+			v_color = (position.wxy+1.5)*vec3(0.15,0.1,0.4)/1.2,1.0;
 			v_pos = pos;
 			gl_Position = vec4(pos.xy,1.0,1.0); // vec4(pos.xyz,1.0) 
 		}

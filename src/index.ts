@@ -19,6 +19,24 @@ var FPSMeter = new FPS([(fps) => log({ FPS: fps })], 60);
 function nA(len: number) {
 	return ".".repeat(len).split("");
 }
+function fullScreen() {
+	((elm) => [
+		"requestFullscreen",
+		"webkitRequestFullScreen",
+		"mozRequestFullScreen",
+		"msRequestFullscreen"
+	].some(_ => elm[_] ? (elm[_](), true) : false)
+	)(document.documentElement); // Make it fullscreen.
+}
+function exitFullScreen() {
+	((elm) => [
+		"exitFullscreen",
+		"webkitExitFullscreen",
+		"mozCancelFullScreen",
+		"msExitFullscreen"
+	].some(_ => elm[_] ? (elm[_](), true) : false)
+	)(document.documentElement); // Make it fullscreen.
+}
 const dim = 4;
 const arrays = {
 	position: {
@@ -111,6 +129,7 @@ function addEvents() {
 	var count = 1;
 	canvas.addEventListener("click", () => {
 		count = (count + 1) % 3;
+		ge("control-info").classList.add("hide");
 		if (count == 0) {
 			ge("control").classList.remove("hide");
 			ge("log").classList.add("hide");
@@ -120,6 +139,7 @@ function addEvents() {
 		} else if (count == 2) {
 			ge("control").classList.add("hide");
 			ge("log").classList.add("hide");
+			fullScreen();
 		}
 	});
 	const cI = ge("control-input") as HTMLInputElement, cT = ge("control-title") as HTMLButtonElement;
@@ -127,7 +147,7 @@ function addEvents() {
 	var currentOptionIndex = 0;
 	var updateCT = () => {
 		cT.innerText = options._[currentOptionIndex][1];
-		cI.value = options[options._[currentOptionIndex][0]] * options._[currentOptionIndex][2];
+		cI.value = (options[options._[currentOptionIndex][0]] * options._[currentOptionIndex][2]).toString();
 	}
 	updateCT();
 	cT.addEventListener("click", () => {
