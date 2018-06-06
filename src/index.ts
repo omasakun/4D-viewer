@@ -93,7 +93,7 @@ var options = {
 	_: [["fov", "[ FOV ]", 1], ["eyeSep4D", "両眼視差", 20], ["eyeSep2D", "目の幅", 20], ["scale", "拡大率", 20]] as [string, string, number][],
 	fov: 60,
 	eyeSep4D: 1,
-	eyeSep2D: 1.2,
+	eyeSep2D: 1,
 	scale: 2
 }
 const relativeSensor = true;
@@ -198,20 +198,20 @@ function onTick(ticks: number, time: number): boolean {
 
 	// x, y, z, w, 1 -> x', y', z', w'
 	let matTmp = new M(5).getId()
-		//.mulMat(new M(5).getRot(0, 1, Math.PI / 12))
-		//.mulMat(new M(5).getRot(1, 2, Math.PI / 12))
-		//.mulMat(new M(5).getRot(2, 0, Math.PI / 12))
-		//.mulMat(new M(5).getRot(2, 3, Math.PI / 12))
-		//.mulMat(new M(5).getRot(0, 2, time / 3))
-		// .mulMat(new M(5).getRot(0, 3, time))
-		//.mulMat(new M(5).getRot(1, 3, time / 3))
+		.mulMat(new M(5).getRot(0, 1, Math.PI / 12))
+		.mulMat(new M(5).getRot(1, 2, Math.PI / 12))
+		.mulMat(new M(5).getRot(2, 0, Math.PI / 12))
+		.mulMat(new M(5).getRot(2, 3, Math.PI / 12))
+		.mulMat(new M(5).getRot(0, 2, time / 3))
+		 .mulMat(new M(5).getRot(0, 3, time))
+		.mulMat(new M(5).getRot(1, 3, time / 3))
 		.mulMat(new M(5).getRot(1, 0,deviceOri && deviceOri.alpha ? deviceOri.alpha * Math.PI / 180 : 0))
 		.mulMat(new M(5).getRot(1, 2,deviceOri && deviceOri.gamma ? deviceOri.gamma * Math.PI / 180 : 0))
 		.mulMat(new M(5).getRot(0, 2,deviceOri && deviceOri.beta ? deviceOri.beta * Math.PI / 180 : 0))
 		.mulMat(new M(5).getRot(0, 1, -screenOri * Math.PI / 180))
 		.transform(new V(5, [0, 0, 3, 3, 0]));
-	if(deviceOri)
-	ge("control-info").innerText = deviceOri.alpha.toFixed(2)+":"+deviceOri.beta.toFixed(2)+":"+deviceOri.gamma.toFixed(2)+":"+screenOri;
+//	if(deviceOri)
+//	ge("control-info").innerText = deviceOri.alpha.toFixed(2)+":"+deviceOri.beta.toFixed(2)+":"+deviceOri.gamma.toFixed(2)+":"+screenOri;
 	let matL = matTmp.clone().transform(new V(5, [0 + options.eyeSep4D / 2, 0, 0, 0, 0]));
 	let matR = matTmp.clone().transform(new V(5, [0 - options.eyeSep4D / 2, 0, 0, 0, 0]));
 	uniforms.u_L_worldViewBeforeA = matL.slice(0, 3, 0, 3);
