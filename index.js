@@ -694,13 +694,12 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
     }
     function onTick(ticks, time) {
         time *= 0.001;
-        index_1.twgl.resizeCanvasToDisplaySize(exports.gl.canvas, 0.5);
+        index_1.twgl.resizeCanvasToDisplaySize(exports.gl.canvas, window.devicePixelRatio || 1.0);
         exports.gl.viewport(0, 0, exports.gl.canvas.width, exports.gl.canvas.height);
         exports.gl.enable(exports.gl.BLEND);
         exports.gl.blendFunc(exports.gl.ONE, exports.gl.ONE);
         exports.gl.clear(exports.gl.COLOR_BUFFER_BIT | exports.gl.DEPTH_BUFFER_BIT);
-        const fov = 120 * Math.PI / 180;
-        const aspect = exports.gl.canvas.clientWidth / exports.gl.canvas.clientHeight;
+        const fov = 60 * Math.PI / 180;
         let matTmp = new exports.M(5).getId()
             .mulMat(new exports.M(5).getRot(0, 1, Math.PI / 12))
             .mulMat(new exports.M(5).getRot(1, 2, Math.PI / 12))
@@ -708,15 +707,16 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
             .mulMat(new exports.M(5).getRot(0, 2, time))
             .mulMat(new exports.M(5).getRot(1, 3, time))
             .scale(new exports.V(5, [1, 1, 1, 1, 1]))
-            .transform(new exports.V(5, [0, 0, 3, 3.7, 0]));
+            .transform(new exports.V(5, [0, 0, 3, 3, 0]));
         let matL = matTmp.clone().transform(new exports.V(5, [0 + 0.5, 0, 0, 0, 0]));
         let matR = matTmp.clone().transform(new exports.V(5, [0 - 0.5, 0, 0, 0, 0]));
         uniforms.u_L_worldViewBeforeA = matL.slice(0, 3, 0, 3);
         uniforms.u_L_worldViewBeforeB = matL.slice(4, 4, 0, 3);
         uniforms.u_R_worldViewBeforeA = matR.slice(0, 3, 0, 3);
         uniforms.u_R_worldViewBeforeB = matR.slice(4, 4, 0, 3);
-        let matLAfter = new exports.M(5).getId().transform(new exports.V(5, [0 - 0.6, 0, 0, 0, 0]));
-        let matRAfter = new exports.M(5).getId().transform(new exports.V(5, [0 + 0.6, 0, 0, 0, 0]));
+        let matTmpAfter = new exports.M(5).getId().scale(new exports.V(5, [2, 2, 1, 1, 1]));
+        let matLAfter = matTmpAfter.clone().transform(new exports.V(5, [0 - 0.6, 0, 0, 0, 0]));
+        let matRAfter = matTmpAfter.clone().transform(new exports.V(5, [0 + 0.6, 0, 0, 0, 0]));
         uniforms.u_L_worldViewAfterA = matLAfter.slice(0, 3, 0, 3);
         uniforms.u_L_worldViewAfterB = matLAfter.slice(4, 4, 0, 3);
         uniforms.u_R_worldViewAfterA = matRAfter.slice(0, 3, 0, 3);
@@ -725,8 +725,9 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
         uniforms.u_R_clip = [0.0, 1.0, -1.0, 1.0];
         uniforms.u_zRange = [0.1, 10];
         uniforms.u_wRange = [0.1, 10];
-        const f = Math.tan(Math.PI * 0.5 - 0.5 * fov);
-        uniforms.u_xyTanInv = [f * aspect, f];
+        const cW = exports.gl.canvas.clientWidth, cH = exports.gl.canvas.clientHeight, cMin = Math.min(cW, cH);
+        const f = 1 / Math.tan(0.5 * fov);
+        uniforms.u_xyTanInv = [f * cW / cMin, f * cH / cMin];
         exports.tmmmm = uniforms;
         exports.tmmmm.mat = matTmp.clone();
         exports.gl.useProgram(programInfo.program);

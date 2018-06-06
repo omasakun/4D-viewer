@@ -100,14 +100,14 @@ function init() {
 	uniforms.u_diffuse = cubeTex;
 	addEvents();
 }
-function addEvents(){
-	canvas.addEventListener("click",()=>{
+function addEvents() {
+	canvas.addEventListener("click", () => {
 		ge("controls-root").classList.toggle("hide");
 	});
 }
 function onTick(ticks: number, time: number): boolean {
 	time *= 0.001;
-	twgl.resizeCanvasToDisplaySize(gl.canvas, 0.5);
+	twgl.resizeCanvasToDisplaySize(gl.canvas, window.devicePixelRatio || 1.0);
 	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 	// gl.enable(gl.DEPTH_TEST);
 	// gl.enable(gl.CULL_FACE); // TODO: Performance issue
@@ -116,8 +116,7 @@ function onTick(ticks: number, time: number): boolean {
 	gl.blendFunc(gl.ONE, gl.ONE);
 	//gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	const fov = 120 * Math.PI / 180;
-	const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+	const fov = 60 * Math.PI / 180;
 
 	// x, y, z, w, 1 -> x', y', z', w'
 	let matTmp = new M(5).getId()
@@ -129,15 +128,16 @@ function onTick(ticks: number, time: number): boolean {
 		// .mulMat(new M(5).getRot(0, 3, time))
 		.mulMat(new M(5).getRot(1, 3, time))
 		.scale(new V(5, [1, 1, 1, 1, 1]))
-		.transform(new V(5, [0, 0, 3, 3.7, 0]));
+		.transform(new V(5, [0, 0, 3, 3, 0]));
 	let matL = matTmp.clone().transform(new V(5, [0 + 0.5, 0, 0, 0, 0]));
 	let matR = matTmp.clone().transform(new V(5, [0 - 0.5, 0, 0, 0, 0]));
 	uniforms.u_L_worldViewBeforeA = matL.slice(0, 3, 0, 3);
 	uniforms.u_L_worldViewBeforeB = matL.slice(4, 4, 0, 3);
 	uniforms.u_R_worldViewBeforeA = matR.slice(0, 3, 0, 3);
 	uniforms.u_R_worldViewBeforeB = matR.slice(4, 4, 0, 3);
-	let matLAfter = new M(5).getId().transform(new V(5, [0 - 0.6, 0, 0, 0, 0]));
-	let matRAfter = new M(5).getId().transform(new V(5, [0 + 0.6, 0, 0, 0, 0]));
+	let matTmpAfter = new M(5).getId().scale(new V(5, [2, 2, 1, 1, 1]));
+	let matLAfter = matTmpAfter.clone().transform(new V(5, [0 - 0.6, 0, 0, 0, 0]));
+	let matRAfter = matTmpAfter.clone().transform(new V(5, [0 + 0.6, 0, 0, 0, 0]));
 	uniforms.u_L_worldViewAfterA = matLAfter.slice(0, 3, 0, 3);
 	uniforms.u_L_worldViewAfterB = matLAfter.slice(4, 4, 0, 3);
 	uniforms.u_R_worldViewAfterA = matRAfter.slice(0, 3, 0, 3);
@@ -146,8 +146,10 @@ function onTick(ticks: number, time: number): boolean {
 	uniforms.u_R_clip = [0.0, 1.0, -1.0, 1.0]; // xMin xMax yMin ymax
 	uniforms.u_zRange = [0.1, 10];
 	uniforms.u_wRange = [0.1, 10];
-	const f = Math.tan(Math.PI * 0.5 - 0.5 * fov);
-	uniforms.u_xyTanInv = [f * aspect, f];
+
+	const cW = gl.canvas.clientWidth, cH = gl.canvas.clientHeight, cMin = Math.min(cW, cH);
+	const f = 1 / Math.tan(0.5 * fov);
+	uniforms.u_xyTanInv = [f * cW / cMin, f * cH / cMin];
 	tmmmm = uniforms;
 	tmmmm.mat = matTmp.clone();
 
