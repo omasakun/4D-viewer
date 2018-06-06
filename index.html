@@ -44,63 +44,84 @@
 		<div id="c1-parent" class="fullW fullH cV cCenter center">
 			<canvas id="c1" class="fullW fullH"></canvas>
 		</div>
-		<pre id="log" class="scrollX scrollY"></pre>
+		<div id="controls-root" class="fullW fullH stack">
+				<pre id="log" class="scrollX scrollY"></pre>
+				<div id="controls-parent" class="fullW fullH cV cCenter center">
+					<div class="fullW cH">
+						<button>FOV</button>
+						<button>4D空間上の目の幅</button>
+						<button>拡大率</button>
+						<button>スクリーン上の目の幅</button>
+					</div>
+				</div>
+		</div>
+
 	</div>
 	<script id="vs" type="x-shader/x-vertex">
-		uniform mat4 u_worldViewProjectionA; 
-		uniform vec4 u_worldViewProjectionB; 
+		uniform mat4 u_L_worldViewBeforeA;
+		uniform vec4 u_L_worldViewBeforeB; 
+		uniform mat4 u_L_worldViewAfterA; 
+		uniform vec4 u_L_worldViewAfterB; 
+		uniform vec4 u_L_clip; // xMin, xMax, yMin, yMax
+		uniform mat4 u_R_worldViewBeforeA; 
+		uniform vec4 u_R_worldViewBeforeB; 
+		uniform mat4 u_R_worldViewAfterA; 
+		uniform vec4 u_R_worldViewAfterB; 
+		uniform vec4 u_R_clip; 
+
+		uniform int  u_eye; // -1:Left 1:Right
 		uniform vec2 u_zRange;
 		uniform vec2 u_wRange;
 		uniform vec2 u_xyTanInv;
+		
+		//             _______________
+		// 	 O     O  < Hello, world! |
+		//  /|\   J|V  ￣￣￣￣￣￣￣￣
+		//  / \   / \
+
 		attribute vec4 position; 
 		attribute vec2 texcoord; 
-		varying vec2 v_texCoord; 
+		varying vec2  v_texCoord; 
 		varying float	v_diffuse;
+		varying vec4	v_color;
+		varying vec4	v_clip;
 		varying vec4	v_pos;
 		void main() { // TODO: z,w ordering / w,zに応じて非描画
-			vec4 pos = u_worldViewProjectionA * position + u_worldViewProjectionB;
-			pos.xy = pos.xy / (u_xyTanInv.xy * pos.z);
-			pos.xy = pos.xy / (pos.w);
-			//pos.xy = pos.xy / (pos.w);
+			vec4 pos;
+			if(u_eye < 0){
+				pos = u_L_worldViewBeforeA * position + u_L_worldViewBeforeB;
+				pos.xy /= u_xyTanInv.xy * pos.z;
+				pos.xy /= pos.w;
+				pos = u_L_worldViewAfterA * pos + u_L_worldViewAfterB;
+				v_clip = u_L_clip;
+			}else{
+				pos = u_R_worldViewBeforeA * position + u_R_worldViewBeforeB;
+				pos.xy /= u_xyTanInv.xy * pos.z;
+				pos.xy /= pos.w;
+				pos = u_R_worldViewAfterA * pos + u_R_worldViewAfterB;
+				v_clip = u_R_clip;
+			}
 			v_diffuse = 0.4*clamp(dot(pos,vec4(0.0,-1.0,0.0,0.0)),0.1,1.0)+0.4;
 			v_texCoord = texcoord; 
-			v_pos = vec4(position.wxy,1.0);
+			v_color = vec4(position.wxy,1.0);
+			v_pos = pos;
 			gl_Position = vec4(pos.xy,1.0,1.0); // vec4(pos.xyz,1.0) 
 		}
 	</script>
-
 	<script id="fs" type="x-shader/x-fragment">
 		precision mediump float; 
-		varying vec2 v_texCoord; 
-		varying float v_diffuse; 
-		varying vec4	v_pos;		
+		varying vec2  v_texCoord; 
+		varying float	v_diffuse;
+		varying vec4	v_color;
+		varying vec4	v_pos;
+		varying vec4	v_clip;
 		uniform sampler2D u_diffuse; 
 		void main() { 
-			//if(v_texCoord.y	<0.1 || v_texCoord.y>0.9 || v_texCoord.x	<0.1 || v_texCoord.x>0.9)discard; 
-			gl_FragColor = vec4(texture2D(u_diffuse, v_texCoord).rgb*v_diffuse,1.0);
-			gl_FragColor = vec4((v_pos.rgb+1.5)*vec3(0.2,0.1,0.25)/1.5,1.0);
-		}
-	</script>
-	<script id="stereo-vs" type="x-shader/x-vertex">
-		attribute vec2 position; 
-		attribute vec3 texcoord; // x,y,index 
-		varying vec3 v_texCoord;
-		void main() {
-			v_texCoord = texcoord;
-			gl_Position = vec4(position,0.0,1.0);
-		}
-	</script>
-
-	<script id="stereo-fs" type="x-shader/x-fragment">
-		precision mediump float; 
-		uniform sampler2D u_texA; 
-		uniform sampler2D u_texB; 
-		varying vec3 v_texCoord;		
-		void main() { 
-			if(v_texCoord.z < 0.0){
-				gl_FragColor = texture2D(u_texA, v_texCoord.xy+vec2(0.0,0.0));
-			} else {
-				gl_FragColor = texture2D(u_texB, v_texCoord.xy);
+			if(v_pos.x < v_clip[0] || v_clip[1] < v_pos.x || v_pos.y < v_clip[2] || v_clip[3] < v_pos.y){
+				gl_FragColor = vec4(0.0,0.0,0.0,0.0);
+			}else{
+				// gl_FragColor = vec4(texture2D(u_diffuse, v_texCoord).rgb*v_diffuse,1.0);
+				gl_FragColor = vec4((v_color.rgb+1.5)*vec3(0.2,0.1,0.25)/1.5,1.0);
 			}
 		}
 	</script>

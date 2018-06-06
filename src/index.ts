@@ -14,8 +14,7 @@ twgl = window["twgl"] as any;
 
 export var gl: WebGLRenderingContext, canvas: HTMLCanvasElement, canvasParent: HTMLDivElement, log: Logger, M = Matrix, V = Vector, tmmmm;
 var programInfo: twgl.ProgramInfo, bufferInfo: twgl.BufferInfo, cubeTex: WebGLTexture;
-var stereo_programInfo: twgl.ProgramInfo, stereo_bufferInfo: twgl.BufferInfo;
-var framebufferInfo_left: twgl.FramebufferInfo, framebufferInfo_right: twgl.FramebufferInfo;
+var framebufferInfo_left: twgl.FramebufferInfo;
 var FPSMeter = new FPS([(fps) => log({ FPS: fps })], 60);
 function nA(len: number) {
 	return ".".repeat(len).split("");
@@ -53,35 +52,23 @@ const arrays = {
 		type: Float32Array
 	}
 };
-const stereo_arrays = {
-	position: {
-		numComponents: 2,
-		data: ([] as number[]).concat([-1, -1], [-1, 1], [0, -1], [0, 1], [0, -1], [0, 1], [1, -1], [1, 1]),
-		type: Float32Array
-	},
-	indices: {
-		numComponents: 3, // Triangles
-		data: ([] as number[]).concat([0, 1, 2], [1, 2, 3], [4, 5, 6], [5, 6, 7]),
-		type: Uint16Array
-	},
-	texcoord: {
-		numComponents: 3, // x,y,index 
-		data: ([] as number[]).concat([0, 0, -1], [0, 1, -1], [1, 0, -1], [1, 1, -1], [0,0, 1], [0, 1, 1], [1, 0, 1], [1, 1, 1]),
-		type: Float32Array
-	}
-};
 
 const uniforms = {
-	u_diffuse: {} as WebGLTexture, // set @ init()
-	u_worldViewProjectionA: [] as number[], // mat4
-	u_worldViewProjectionB: [] as number[], // vec4
-	u_zRange: [] as number[], // [min,max]
-	u_wRange: [] as number[], // [min,max]
-	u_xyTanInv: [] as number[] // [xTan,yTan] アスペクト比とかのファクター
-};
-const stereo_uniforms = {
-	u_texA: {} as WebGLTexture,
-	u_texB: {} as WebGLTexture
+	u_diffuse: {} as WebGLTexture,        // set @ init()
+	u_L_worldViewBeforeA: [] as number[], // mat4
+	u_L_worldViewBeforeB: [] as number[], // vec4
+	u_L_worldViewAfterA: [] as number[],  // mat4
+	u_L_worldViewAfterB: [] as number[],  // vec4
+	u_L_clip: [] as number[],             // mat2
+	u_R_worldViewBeforeA: [] as number[], // mat4
+	u_R_worldViewBeforeB: [] as number[], // vec4
+	u_R_worldViewAfterA: [] as number[],  // mat4
+	u_R_worldViewAfterB: [] as number[],  // vec4
+	u_R_clip: [] as number[],             // mat2
+	u_eye: 0,                             // int -1:Left 1:Right
+	u_zRange: [] as number[],             // [min,max]
+	u_wRange: [] as number[],             // [min,max]
+	u_xyTanInv: [] as number[]            // [xTan,yTan] アスペクト比とかのファクター
 };
 
 function init() {
@@ -100,22 +87,6 @@ function init() {
 	programInfo = twgl.createProgramInfo(gl, ["vs", "fs"]);
 	bufferInfo = twgl.createBufferInfoFromArrays(gl, arrays);
 
-	stereo_programInfo = twgl.createProgramInfo(gl, ["stereo-vs", "stereo-fs"]);
-	stereo_bufferInfo = twgl.createBufferInfoFromArrays(gl, stereo_arrays);
-	var onResize = () => {
-		framebufferInfo_left = twgl.createFramebufferInfo(gl, undefined, 1024, 1024);
-		framebufferInfo_right = twgl.createFramebufferInfo(gl, undefined, 1024, 1024);
-	}
-	onResize();
-	/*((Fn) => {
-		var i: number | undefined = undefined;
-		window.addEventListener('resize', () => {
-			if (i !== undefined) clearTimeout(i);
-			i = setTimeout(Fn, 100);
-		});
-	})(onResize);*/
-	stereo_uniforms.u_texA = framebufferInfo_left.attachments[0];
-	stereo_uniforms.u_texB = framebufferInfo_right.attachments[0];
 	cubeTex = twgl.createTexture(gl, {
 		min: gl.NEAREST,
 		mag: gl.NEAREST,
@@ -127,11 +98,17 @@ function init() {
 		],
 	});
 	uniforms.u_diffuse = cubeTex;
+	addEvents();
+}
+function addEvents(){
+	canvas.addEventListener("click",()=>{
+		ge("controls-root").classList.toggle("hide");
+	});
 }
 function onTick(ticks: number, time: number): boolean {
 	time *= 0.001;
-	twgl.resizeCanvasToDisplaySize(gl.canvas);
-	// gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+	twgl.resizeCanvasToDisplaySize(gl.canvas, 0.5);
+	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 	// gl.enable(gl.DEPTH_TEST);
 	// gl.enable(gl.CULL_FACE); // TODO: Performance issue
 	gl.enable(gl.BLEND);
@@ -140,10 +117,10 @@ function onTick(ticks: number, time: number): boolean {
 	//gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	const fov = 120 * Math.PI / 180;
-	const aspect = (gl.canvas.clientWidth / 2) / gl.canvas.clientHeight;
+	const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
 
 	// x, y, z, w, 1 -> x', y', z', w'
-	let tmpMat = new M(5).getId()
+	let matTmp = new M(5).getId()
 		.mulMat(new M(5).getRot(0, 1, Math.PI / 12))
 		.mulMat(new M(5).getRot(1, 2, Math.PI / 12))
 		.mulMat(new M(5).getRot(2, 0, Math.PI / 12))
@@ -152,47 +129,39 @@ function onTick(ticks: number, time: number): boolean {
 		// .mulMat(new M(5).getRot(0, 3, time))
 		.mulMat(new M(5).getRot(1, 3, time))
 		.scale(new V(5, [1, 1, 1, 1, 1]))
-		.transform(new V(5, [-1, 0/*(time % 10) * 6 - 30*/, 3, 3.7, 0]));
-	//--------------------------------------------- x1 x2 y1 y2
-	uniforms.u_worldViewProjectionA = tmpMat.slice(0, 3, 0, 3);
-	uniforms.u_worldViewProjectionB = tmpMat.slice(4, 4, 0, 3);
+		.transform(new V(5, [0, 0, 3, 3.7, 0]));
+	let matL = matTmp.clone().transform(new V(5, [0 + 0.5, 0, 0, 0, 0]));
+	let matR = matTmp.clone().transform(new V(5, [0 - 0.5, 0, 0, 0, 0]));
+	uniforms.u_L_worldViewBeforeA = matL.slice(0, 3, 0, 3);
+	uniforms.u_L_worldViewBeforeB = matL.slice(4, 4, 0, 3);
+	uniforms.u_R_worldViewBeforeA = matR.slice(0, 3, 0, 3);
+	uniforms.u_R_worldViewBeforeB = matR.slice(4, 4, 0, 3);
+	let matLAfter = new M(5).getId().transform(new V(5, [0 - 0.6, 0, 0, 0, 0]));
+	let matRAfter = new M(5).getId().transform(new V(5, [0 + 0.6, 0, 0, 0, 0]));
+	uniforms.u_L_worldViewAfterA = matLAfter.slice(0, 3, 0, 3);
+	uniforms.u_L_worldViewAfterB = matLAfter.slice(4, 4, 0, 3);
+	uniforms.u_R_worldViewAfterA = matRAfter.slice(0, 3, 0, 3);
+	uniforms.u_R_worldViewAfterB = matRAfter.slice(4, 4, 0, 3);
+	uniforms.u_L_clip = [-1.0, 0.0, -1.0, 1.0]; // xMin xMax yMin ymax
+	uniforms.u_R_clip = [0.0, 1.0, -1.0, 1.0]; // xMin xMax yMin ymax
 	uniforms.u_zRange = [0.1, 10];
 	uniforms.u_wRange = [0.1, 10];
 	const f = Math.tan(Math.PI * 0.5 - 0.5 * fov);
 	uniforms.u_xyTanInv = [f * aspect, f];
 	tmmmm = uniforms;
-	tmmmm.mat = tmpMat.clone();
+	tmmmm.mat = matTmp.clone();
 
 	gl.useProgram(programInfo.program);
 	twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
-
-	// Draw Left
-	twgl.bindFramebufferInfo(gl, framebufferInfo_left);
-	gl.enable(gl.BLEND);
-	gl.blendFunc(gl.ONE, gl.ONE);
-	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	// twgl.bindFramebufferInfo(gl, undefined);
+	// Left eye
+	uniforms.u_eye = -1;
 	twgl.setUniforms(programInfo, uniforms);
 	gl.drawElements(gl.TRIANGLES, bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
-
-	// Draw Right
-	tmpMat.transform(new V(5, [1, 0, 0, 0, 0]));
-	//--------------------------------------------- x1 x2 y1 y2
-	uniforms.u_worldViewProjectionA = tmpMat.slice(0, 3, 0, 3);
-	uniforms.u_worldViewProjectionB = tmpMat.slice(4, 4, 0, 3);
-	twgl.bindFramebufferInfo(gl, framebufferInfo_right);
-	gl.enable(gl.BLEND);
-	gl.blendFunc(gl.ONE, gl.ONE);
-	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	// Right eye	
+	uniforms.u_eye = 1;
 	twgl.setUniforms(programInfo, uniforms);
 	gl.drawElements(gl.TRIANGLES, bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
-	// Draw Main
-	gl.useProgram(stereo_programInfo.program);
-	twgl.setBuffersAndAttributes(gl, stereo_programInfo, stereo_bufferInfo);
-	twgl.bindFramebufferInfo(gl, undefined);
-	twgl.setUniforms(stereo_programInfo, stereo_uniforms);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-	gl.drawElements(gl.TRIANGLES, stereo_bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
 
 	FPSMeter.tick();
 	return false;
