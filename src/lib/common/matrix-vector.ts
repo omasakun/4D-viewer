@@ -189,13 +189,13 @@ export class Matrix {
 			this.data[y * this.dimension + y] = y == 0 ? f : f / aspects[y - 1];
 		}
 		// tonD番目の要素を計算するための式
-		this.data[tonD    * this.dimension + tonD] = 0;//2 / (far - near);
+		this.data[tonD * this.dimension + tonD] = 0;//2 / (far - near);
 		this.data[oneAxis * this.dimension + tonD] = 1;// far / (near - far);
 		// devNumAxis番目の要素を計算するための式
-		this.data[tonD       * this.dimension + devNumAxis] = 1;
+		this.data[tonD * this.dimension + devNumAxis] = 1;
 		this.data[devNumAxis * this.dimension + devNumAxis] = 0;
 		return this;
-	}	
+	}
 	/*getPerspective(tonD: number, fovFirstAxis: number, aspects: number[], near: number, far: number, oneAxis: number, devNumAxis: number): this {
 		var f = Math.tan(Math.PI * 0.5 - 0.5 * fovFirstAxis);
 		if (tonD != aspects.length + 1 || tonD >= this.dimension) {
@@ -227,6 +227,18 @@ export class Matrix {
 			}
 		}
 		return result;
+	}
+	padding(m: Matrix, x1: number, y1: number): this {
+		if (this.dimension < m.dimension - Math.max(x1, y1)) {
+			showError("次元が違うエラー");
+			throw "次元が違うエラー";
+		}
+		for (let x = x1; x < x1 + m.dimension; x++) {
+			for (let y = x1; y < y1 + m.dimension; y++) {
+				this.data[x * this.dimension + y] = m[(x - x1) * m.dimension + (y - y1)];
+			}
+		}
+		return this;
 	}
 	/** for temporal use */
 	mapping(d: number, map: string): Matrix {

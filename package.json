@@ -6,8 +6,7 @@
   "author": "omasakun",
   "license": "MIT",
   "dependencies": {
-    "almond": "^0.3.3",
-    "motion-sensors-polyfill": "^0.3.1",
+    "almond": "^0.3.3"
     "twgl.js": "git+https://github.com/greggman/twgl.js.git#master"
   },
   "devDependencies": {

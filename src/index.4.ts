@@ -12,7 +12,7 @@ import { twgl } from "../node_modules/@types/twgl.js/index"; // http://twgljs.or
 //@ts-ignore // Force to load twgl.js
 twgl = window["twgl"] as any;
 
-export var gl: WebGLRenderingContext, canvas: HTMLCanvasElement, canvasParent: HTMLDivElement, log: Logger, M = Matrix, V = Vector, tmmmm;
+export var gl: WebGLRenderingContext, canvas: HTMLCanvasElement, canvasParent: HTMLDivElement, log: Logger, M = Matrix, V = Vector, tmmmm,mat4 = new Float32Array(16);
 var programInfo: twgl.ProgramInfo, bufferInfo: twgl.BufferInfo, cubeTex: WebGLTexture;
 var framebufferInfo_left: twgl.FramebufferInfo;
 var FPSMeter = new FPS([(fps) => log({ FPS: fps })], 60);
@@ -97,6 +97,7 @@ var options = {
 	scale: 2
 }
 const relativeSensor = true;
+
 function init() {
 	log = getLogger(ge("log") as HTMLPreElement, 30, false);
 	canvasParent = ge("c1-parent") as HTMLDivElement;
@@ -128,6 +129,14 @@ function init() {
 	initSensor();
 }
 function addEvents() {
+	document.addEventListener('fullscreenchange', () => {
+		// @ts-ignore		
+		screen.lockOrientationUniversal = screen.lockOrientation || screen.mozLockOrientation || screen.msLockOrientation;
+		if (document.fullscreenElement != null) {
+			// @ts-ignore			
+			screen.lockOrientationUniversal.lock("landscape-primary")
+		}
+	});
 	var count = 1;
 	canvas.addEventListener("click", () => {
 		count = (count + 1) % 3;
@@ -167,21 +176,41 @@ function addEvents() {
 		updateCT();
 	});
 }
-var deviceOri: DeviceOrientationEvent | undefined = undefined, screenOri = 0;
+var screenOri = 0;
 function initSensor() {
-	window.addEventListener("deviceorientation", (e) => {
-		deviceOri = e;
-		// console.log(e.alpha, e.beta, e.gamma);
-	});
-	function getOrientation() {
-		switch (screen.orientation.type || window.screen.orientation || window.screen.mozOrientation) {
-			case 'landscape-primary': return 90;
-			case 'landscape-secondary': return -90;
-			case 'portrait-secondary': return 180;
-			case 'portrait-primary': return 0;
-		}		return window.orientation as number || 0;
+	let initSensor = () => {
+		const options = { frequency: 60 };
+		// @ts-ignore
+		let sensor = relativeSensor ? new RelativeOrientationSensor(options) : new AbsoluteOrientationSensor(options);
+		sensor.onreading = () => {
+			sensor.populateMatrix(mat4)
+		};
+		sensor.onerror = (event) => {
+			if (event.error.name == 'NotReadableError') {
+				console.log("Sensor is not available.");
+			}
+		}
+		sensor.start();
+	};
+	// @ts-ignore	
+	if (navigator.permissions) {
+		// https://w3c.github.io/orientation-sensor/#model
+		// @ts-ignore		
+		Promise.all([navigator.permissions.query({ name: "accelerometer" }), navigator.permissions.query({ name: "magnetometer" }), navigator.permissions.query({ name: "gyroscope" })])
+			.then(results => {
+				if (results.every(result => result.state === "granted")) {
+					initSensor();
+				} else {
+					console.log("Permission to use sensor was denied.");
+				}
+			}).catch(err => {
+				console.log("Integration with Permissions API is not enabled, still try to start app.");
+				initSensor();
+			});
+	} else {
+		console.log("No Permissions API, still try to start app.");
+		initSensor();
 	}
-	window.addEventListener('orientationchange', () => screenOri = getOrientation(), false);
 }
 function onTick(ticks: number, time: number): boolean {
 	time *= 0.001;
@@ -205,13 +234,11 @@ function onTick(ticks: number, time: number): boolean {
 		//.mulMat(new M(5).getRot(0, 2, time / 3))
 		// .mulMat(new M(5).getRot(0, 3, time))
 		//.mulMat(new M(5).getRot(1, 3, time / 3))
-		.mulMat(new M(5).getRot(1, 0,deviceOri && deviceOri.alpha ? deviceOri.alpha * Math.PI / 180 : 0))
-		.mulMat(new M(5).getRot(1, 2,deviceOri && deviceOri.gamma ? deviceOri.gamma * Math.PI / 180 : 0))
-		.mulMat(new M(5).getRot(0, 2,deviceOri && deviceOri.beta ? deviceOri.beta * Math.PI / 180 : 0))
+		.mulMat(new M(5).getId().padding(new M(4, Array.from(mat4)), 0, 0))
 		.mulMat(new M(5).getRot(0, 1, -screenOri * Math.PI / 180))
 		.transform(new V(5, [0, 0, 3, 3, 0]));
-	if(deviceOri)
-	ge("control-info").innerText = deviceOri.alpha.toFixed(2)+":"+deviceOri.beta.toFixed(2)+":"+deviceOri.gamma.toFixed(2)+":"+screenOri;
+	//console.log("A",mat4);
+	ge("control-info").innerText = screenOri;
 	let matL = matTmp.clone().transform(new V(5, [0 + options.eyeSep4D / 2, 0, 0, 0, 0]));
 	let matR = matTmp.clone().transform(new V(5, [0 - options.eyeSep4D / 2, 0, 0, 0, 0]));
 	uniforms.u_L_worldViewBeforeA = matL.slice(0, 3, 0, 3);

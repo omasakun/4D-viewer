@@ -507,6 +507,18 @@ define("src/lib/common/matrix-vector", ["require", "exports", "src/common-settin
             }
             return result;
         }
+        padding(m, x1, y1) {
+            if (this.dimension < m.dimension - Math.max(x1, y1)) {
+                util_3.showError("次元が違うエラー");
+                throw "次元が違うエラー";
+            }
+            for (let x = x1; x < x1 + m.dimension; x++) {
+                for (let y = x1; y < y1 + m.dimension; y++) {
+                    this.data[x * this.dimension + y] = m[(x - x1) * m.dimension + (y - y1)];
+                }
+            }
+            return this;
+        }
         mapping(d, map) {
             if (d * d != map.length) {
                 util_3.showError("次元が違うエラー");
@@ -753,11 +765,21 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
             updateCT();
         });
     }
-    var deviceOri = undefined;
+    var deviceOri = undefined, screenOri = 0;
     function initSensor() {
         window.addEventListener("deviceorientation", (e) => {
             deviceOri = e;
         });
+        function getOrientation() {
+            switch (screen.orientation.type || window.screen.orientation || window.screen.mozOrientation) {
+                case 'landscape-primary': return 90;
+                case 'landscape-secondary': return -90;
+                case 'portrait-secondary': return 180;
+                case 'portrait-primary': return 0;
+            }
+            return window.orientation || 0;
+        }
+        window.addEventListener('orientationchange', () => screenOri = getOrientation(), false);
     }
     function onTick(ticks, time) {
         time *= 0.001;
@@ -768,16 +790,13 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
         exports.gl.clear(exports.gl.COLOR_BUFFER_BIT | exports.gl.DEPTH_BUFFER_BIT);
         const fov = options.fov * Math.PI / 180;
         let matTmp = new exports.M(5).getId()
-            .mulMat(new exports.M(5).getRot(0, 1, Math.PI / 12))
-            .mulMat(new exports.M(5).getRot(1, 2, Math.PI / 12))
-            .mulMat(new exports.M(5).getRot(2, 0, Math.PI / 12))
-            .mulMat(new exports.M(5).getRot(0, 2, time / 3))
-            .mulMat(new exports.M(5).getRot(1, 3, time / 3))
-            .mulMat(new exports.M(5).getRot(1, 2, deviceOri && deviceOri.alpha ? deviceOri.alpha * Math.PI / 180 : 0))
-            .mulMat(new exports.M(5).getRot(0, 2, deviceOri && deviceOri.beta ? deviceOri.beta * Math.PI / 180 : 0))
+            .mulMat(new exports.M(5).getRot(1, 0, deviceOri && deviceOri.alpha ? deviceOri.alpha * Math.PI / 180 : 0))
             .mulMat(new exports.M(5).getRot(1, 2, deviceOri && deviceOri.gamma ? deviceOri.gamma * Math.PI / 180 : 0))
-            .scale(new exports.V(5, [1, 1, 1, 1, 1]))
+            .mulMat(new exports.M(5).getRot(0, 2, deviceOri && deviceOri.beta ? deviceOri.beta * Math.PI / 180 : 0))
+            .mulMat(new exports.M(5).getRot(0, 1, -screenOri * Math.PI / 180))
             .transform(new exports.V(5, [0, 0, 3, 3, 0]));
+        if (deviceOri)
+            dom_1.ge("control-info").innerText = deviceOri.alpha.toFixed(2) + ":" + deviceOri.beta.toFixed(2) + ":" + deviceOri.gamma.toFixed(2) + ":" + screenOri;
         let matL = matTmp.clone().transform(new exports.V(5, [0 + options.eyeSep4D / 2, 0, 0, 0, 0]));
         let matR = matTmp.clone().transform(new exports.V(5, [0 - options.eyeSep4D / 2, 0, 0, 0, 0]));
         uniforms.u_L_worldViewBeforeA = matL.slice(0, 3, 0, 3);
