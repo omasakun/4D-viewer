@@ -681,6 +681,7 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
         eyeSep2D: 1.2,
         scale: 2
     };
+    const relativeSensor = true;
     function init() {
         exports.log = logger_1.getLogger(dom_1.ge("log"), 30, false);
         exports.canvasParent = dom_1.ge("c1-parent");
@@ -709,6 +710,7 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
         });
         uniforms.u_diffuse = cubeTex;
         addEvents();
+        initSensor();
     }
     function addEvents() {
         var count = 1;
@@ -751,6 +753,12 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
             updateCT();
         });
     }
+    var deviceOri = undefined;
+    function initSensor() {
+        window.addEventListener("deviceorientation", (e) => {
+            deviceOri = e;
+        });
+    }
     function onTick(ticks, time) {
         time *= 0.001;
         index_1.twgl.resizeCanvasToDisplaySize(exports.gl.canvas, window.devicePixelRatio || 1.0);
@@ -763,8 +771,11 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
             .mulMat(new exports.M(5).getRot(0, 1, Math.PI / 12))
             .mulMat(new exports.M(5).getRot(1, 2, Math.PI / 12))
             .mulMat(new exports.M(5).getRot(2, 0, Math.PI / 12))
-            .mulMat(new exports.M(5).getRot(0, 2, time))
-            .mulMat(new exports.M(5).getRot(1, 3, time))
+            .mulMat(new exports.M(5).getRot(0, 2, time / 3))
+            .mulMat(new exports.M(5).getRot(1, 3, time / 3))
+            .mulMat(new exports.M(5).getRot(1, 2, deviceOri && deviceOri.alpha ? deviceOri.alpha * Math.PI / 180 : 0))
+            .mulMat(new exports.M(5).getRot(0, 2, deviceOri && deviceOri.beta ? deviceOri.beta * Math.PI / 180 : 0))
+            .mulMat(new exports.M(5).getRot(1, 2, deviceOri && deviceOri.gamma ? deviceOri.gamma * Math.PI / 180 : 0))
             .scale(new exports.V(5, [1, 1, 1, 1, 1]))
             .transform(new exports.V(5, [0, 0, 3, 3, 0]));
         let matL = matTmp.clone().transform(new exports.V(5, [0 + options.eyeSep4D / 2, 0, 0, 0, 0]));

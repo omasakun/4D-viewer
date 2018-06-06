@@ -96,6 +96,7 @@ var options = {
 	eyeSep2D: 1.2,
 	scale: 2
 }
+const relativeSensor = true;
 function init() {
 	log = getLogger(ge("log") as HTMLPreElement, 30, false);
 	canvasParent = ge("c1-parent") as HTMLDivElement;
@@ -124,6 +125,7 @@ function init() {
 	});
 	uniforms.u_diffuse = cubeTex;
 	addEvents();
+	initSensor();
 }
 function addEvents() {
 	var count = 1;
@@ -165,6 +167,13 @@ function addEvents() {
 		updateCT();
 	});
 }
+var deviceOri: DeviceOrientationEvent | undefined = undefined;
+function initSensor() {
+	window.addEventListener("deviceorientation", (e) => {
+		deviceOri = e;
+		// console.log(e.alpha, e.beta, e.gamma);
+	});
+}
 function onTick(ticks: number, time: number): boolean {
 	time *= 0.001;
 	twgl.resizeCanvasToDisplaySize(gl.canvas, window.devicePixelRatio || 1.0);
@@ -184,9 +193,12 @@ function onTick(ticks: number, time: number): boolean {
 		.mulMat(new M(5).getRot(1, 2, Math.PI / 12))
 		.mulMat(new M(5).getRot(2, 0, Math.PI / 12))
 		//.mulMat(new M(5).getRot(2, 3, Math.PI / 12))
-		.mulMat(new M(5).getRot(0, 2, time))
+		.mulMat(new M(5).getRot(0, 2, time / 3))
 		// .mulMat(new M(5).getRot(0, 3, time))
-		.mulMat(new M(5).getRot(1, 3, time))
+		.mulMat(new M(5).getRot(1, 3, time / 3))
+		.mulMat(new M(5).getRot(1, 2, deviceOri && deviceOri.alpha ? deviceOri.alpha * Math.PI / 180 : 0))
+		.mulMat(new M(5).getRot(0, 2, deviceOri && deviceOri.beta ? deviceOri.beta * Math.PI / 180 : 0))
+		.mulMat(new M(5).getRot(1, 2, deviceOri && deviceOri.gamma ? deviceOri.gamma * Math.PI / 180 : 0))
 		.scale(new V(5, [1, 1, 1, 1, 1]))
 		.transform(new V(5, [0, 0, 3, 3, 0]));
 	let matL = matTmp.clone().transform(new V(5, [0 + options.eyeSep4D / 2, 0, 0, 0, 0]));
