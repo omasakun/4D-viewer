@@ -295,7 +295,7 @@ export function deviceOrientationControl(object: { rotation: Euler, quaternion: 
     var euler = new Euler();
     var q0 = new Quaternion();
     var q1 = new Quaternion(- Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // - PI/2 around the x-axis
-    return function (quaternion, alpha, beta, gamma, orient) {
+    return function (quaternion:Quaternion, alpha, beta, gamma, orient) {
       euler.set(beta, alpha, - gamma, 'YXZ'); // 'ZXY' for the device, but 'YXZ' for us
       quaternion.setFromEuler(euler); // orient the device
       quaternion.multiply(q1); // camera looks out the back of the device, not the top

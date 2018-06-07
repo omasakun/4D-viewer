@@ -1034,7 +1034,7 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
         exports.gl.clear(exports.gl.COLOR_BUFFER_BIT | exports.gl.DEPTH_BUFFER_BIT);
         const fov = options.fov * Math.PI / 180;
         let matTmp = new exports.M(5).getId()
-            .mulMat(new exports.M(5).padding(deviceRot.quaternion.makeRotationMatrix().inverse(), 0, 0))
+            .mulMat(new exports.M(5).padding(deviceRot.quaternion.makeRotationMatrix().transpose(), 0, 0))
             .transform(new exports.V(5, [0, 0, 3, 3, 0]));
         let matL = matTmp.clone().transform(new exports.V(5, [0 + options.eyeSep4D / 2, 0, 0, 0, 0]));
         let matR = matTmp.clone().transform(new exports.V(5, [0 - options.eyeSep4D / 2, 0, 0, 0, 0]));

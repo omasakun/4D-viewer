@@ -198,7 +198,7 @@ function onTick(ticks: number, time: number): boolean {
 		//.mulMat(new M(5).getRot(0, 2, time / 3))
 		//.mulMat(new M(5).getRot(0, 3, time))
 		//.mulMat(new M(5).getRot(1, 3, time / 3))
-		.mulMat(new M(5).padding(deviceRot.quaternion.makeRotationMatrix().inverse(), 0, 0))
+		.mulMat(new M(5).padding(deviceRot.quaternion.makeRotationMatrix().transpose(), 0, 0))
 		// .mulMat(new M(5).getRot(1, 0, deviceOri && deviceOri.alpha ? deviceOri.alpha * Math.PI / 180 : 0))
 		// .mulMat(new M(5).getRot(1, 2, deviceOri && deviceOri.gamma ? deviceOri.gamma * Math.PI / 180 : 0))
 		// .mulMat(new M(5).getRot(0, 2, deviceOri && deviceOri.beta ? deviceOri.beta * Math.PI / 180 : 0))
