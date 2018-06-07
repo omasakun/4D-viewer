@@ -514,7 +514,7 @@ define("src/lib/common/matrix-vector", ["require", "exports", "src/common-settin
             }
             for (let x = x1; x < x1 + m.dimension; x++) {
                 for (let y = x1; y < y1 + m.dimension; y++) {
-                    this.data[x * this.dimension + y] = m[(x - x1) * m.dimension + (y - y1)];
+                    this.data[x * this.dimension + y] = m.data[(x - x1) * m.dimension + (y - y1)];
                 }
             }
             return this;
@@ -611,11 +611,263 @@ define("node_modules/@types/twgl.js/index", ["require", "exports"], function (re
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
 });
-define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/browser/util", "src/lib/browser/dom", "src/lib/browser/logger", "src/lib/browser/webgl", "src/lib/common/util", "src/lib/common/matrix-vector", "node_modules/@types/twgl.js/index", "src/lib/browser/doc-loaded-listener"], function (require, exports, fps_1, util_4, dom_1, logger_1, webgl_1, util_5, matrix_vector_1, index_1) {
+define("src/DeviceOrientationControls", ["require", "exports", "src/lib/common/matrix-vector"], function (require, exports, matrix_vector_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    class Vector3 {
+        constructor(x = 0, y = 0, z = 0) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+    }
+    exports.Vector3 = Vector3;
+    class Euler {
+        constructor(x = 0, y = 0, z = 0, order = 'XYZ') {
+            this.RotationOrders = ['XYZ', 'YZX', 'ZXY', 'XZY', 'YXZ', 'ZYX'];
+            this.DefaultOrder = 'XYZ';
+            this.onChangeCallback = () => void 0;
+            this._x = x;
+            this._y = y;
+            this._z = z;
+            this._order = order;
+        }
+        get order() { return this._order; }
+        set order(value) {
+            this._order = value;
+            this.onChangeCallback();
+        }
+        set(x, y, z, order) {
+            this._x = x;
+            this._y = y;
+            this._z = z;
+            this._order = order || this._order;
+            this.onChangeCallback();
+            return this;
+        }
+        setFromQuaternion(q, order, update = true) {
+            var clamp = (x, a, b) => (x < a) ? a : ((x > b) ? b : x);
+            var sqx = q._x * q._x;
+            var sqy = q._y * q._y;
+            var sqz = q._z * q._z;
+            var sqw = q._w * q._w;
+            order = order || this._order;
+            if (order === 'XYZ') {
+                this._x = Math.atan2(2 * (q._x * q._w - q._y * q._z), (sqw - sqx - sqy + sqz));
+                this._y = Math.asin(clamp(2 * (q._x * q._z + q._y * q._w), -1, 1));
+                this._z = Math.atan2(2 * (q._z * q._w - q._x * q._y), (sqw + sqx - sqy - sqz));
+            }
+            else if (order === 'YXZ') {
+                this._x = Math.asin(clamp(2 * (q._x * q._w - q._y * q._z), -1, 1));
+                this._y = Math.atan2(2 * (q._x * q._z + q._y * q._w), (sqw - sqx - sqy + sqz));
+                this._z = Math.atan2(2 * (q._x * q._y + q._z * q._w), (sqw - sqx + sqy - sqz));
+            }
+            else if (order === 'ZXY') {
+                this._x = Math.asin(clamp(2 * (q._x * q._w + q._y * q._z), -1, 1));
+                this._y = Math.atan2(2 * (q._y * q._w - q._z * q._x), (sqw - sqx - sqy + sqz));
+                this._z = Math.atan2(2 * (q._z * q._w - q._x * q._y), (sqw - sqx + sqy - sqz));
+            }
+            else if (order === 'ZYX') {
+                this._x = Math.atan2(2 * (q._x * q._w + q._z * q._y), (sqw - sqx - sqy + sqz));
+                this._y = Math.asin(clamp(2 * (q._y * q._w - q._x * q._z), -1, 1));
+                this._z = Math.atan2(2 * (q._x * q._y + q._z * q._w), (sqw + sqx - sqy - sqz));
+            }
+            else if (order === 'YZX') {
+                this._x = Math.atan2(2 * (q._x * q._w - q._z * q._y), (sqw - sqx + sqy - sqz));
+                this._y = Math.atan2(2 * (q._y * q._w - q._x * q._z), (sqw + sqx - sqy - sqz));
+                this._z = Math.asin(clamp(2 * (q._x * q._y + q._z * q._w), -1, 1));
+            }
+            else if (order === 'XZY') {
+                this._x = Math.atan2(2 * (q._x * q._w + q._y * q._z), (sqw - sqx + sqy - sqz));
+                this._y = Math.atan2(2 * (q._x * q._z + q._y * q._w), (sqw + sqx - sqy - sqz));
+                this._z = Math.asin(clamp(2 * (q._z * q._w - q._x * q._y), -1, 1));
+            }
+            else {
+                console.warn('THREE.Euler: .setFromQuaternion() given unsupported order: ' + order);
+            }
+            this._order = order;
+            if (update !== false)
+                this.onChangeCallback();
+            return this;
+        }
+        reorder(newOrder) {
+            var q = new Quaternion();
+            q.setFromEuler(this);
+            this.setFromQuaternion(q, newOrder);
+        }
+    }
+    exports.Euler = Euler;
+    class Quaternion {
+        constructor(x = 0, y = 0, z = 0, w = 1) {
+            this.onChangeCallback = () => void 0;
+            this._x = x;
+            this._y = y;
+            this._z = z;
+            this._w = w;
+        }
+        ;
+        setFromEuler(euler, update = false) {
+            var c1 = Math.cos(euler._x / 2);
+            var c2 = Math.cos(euler._y / 2);
+            var c3 = Math.cos(euler._z / 2);
+            var s1 = Math.sin(euler._x / 2);
+            var s2 = Math.sin(euler._y / 2);
+            var s3 = Math.sin(euler._z / 2);
+            if (euler.order === 'XYZ') {
+                this._x = s1 * c2 * c3 + c1 * s2 * s3;
+                this._y = c1 * s2 * c3 - s1 * c2 * s3;
+                this._z = c1 * c2 * s3 + s1 * s2 * c3;
+                this._w = c1 * c2 * c3 - s1 * s2 * s3;
+            }
+            else if (euler.order === 'YXZ') {
+                this._x = s1 * c2 * c3 + c1 * s2 * s3;
+                this._y = c1 * s2 * c3 - s1 * c2 * s3;
+                this._z = c1 * c2 * s3 - s1 * s2 * c3;
+                this._w = c1 * c2 * c3 + s1 * s2 * s3;
+            }
+            else if (euler.order === 'ZXY') {
+                this._x = s1 * c2 * c3 - c1 * s2 * s3;
+                this._y = c1 * s2 * c3 + s1 * c2 * s3;
+                this._z = c1 * c2 * s3 + s1 * s2 * c3;
+                this._w = c1 * c2 * c3 - s1 * s2 * s3;
+            }
+            else if (euler.order === 'ZYX') {
+                this._x = s1 * c2 * c3 - c1 * s2 * s3;
+                this._y = c1 * s2 * c3 + s1 * c2 * s3;
+                this._z = c1 * c2 * s3 - s1 * s2 * c3;
+                this._w = c1 * c2 * c3 + s1 * s2 * s3;
+            }
+            else if (euler.order === 'YZX') {
+                this._x = s1 * c2 * c3 + c1 * s2 * s3;
+                this._y = c1 * s2 * c3 + s1 * c2 * s3;
+                this._z = c1 * c2 * s3 - s1 * s2 * c3;
+                this._w = c1 * c2 * c3 - s1 * s2 * s3;
+            }
+            else if (euler.order === 'XZY') {
+                this._x = s1 * c2 * c3 - c1 * s2 * s3;
+                this._y = c1 * s2 * c3 - s1 * c2 * s3;
+                this._z = c1 * c2 * s3 + s1 * s2 * c3;
+                this._w = c1 * c2 * c3 + s1 * s2 * s3;
+            }
+            if (update !== false)
+                this.onChangeCallback();
+            return this;
+        }
+        multiply(q, p) {
+            if (p !== undefined) {
+                console.warn('Quaternion: .multiply() now only accepts one argument. Use .multiplyQuaternions( a, b ) instead.');
+                return this.multiplyQuaternions(q, p);
+            }
+            return this.multiplyQuaternions(this, q);
+        }
+        multiplyQuaternions(a, b) {
+            var qax = a._x, qay = a._y, qaz = a._z, qaw = a._w;
+            var qbx = b._x, qby = b._y, qbz = b._z, qbw = b._w;
+            this._x = qax * qbw + qaw * qbx + qay * qbz - qaz * qby;
+            this._y = qay * qbw + qaw * qby + qaz * qbx - qax * qbz;
+            this._z = qaz * qbw + qaw * qbz + qax * qby - qay * qbx;
+            this._w = qaw * qbw - qax * qbx - qay * qby - qaz * qbz;
+            this.onChangeCallback();
+            return this;
+        }
+        setFromAxisAngle(axis, angle) {
+            var halfAngle = angle / 2, s = Math.sin(halfAngle);
+            this._x = axis.x * s;
+            this._y = axis.y * s;
+            this._z = axis.z * s;
+            this._w = Math.cos(halfAngle);
+            this.onChangeCallback();
+            return this;
+        }
+        makeRotationMatrix() {
+            var q = this;
+            var te = new Array(16);
+            var x = q._x, y = q._y, z = q._z, w = q._w;
+            var x2 = x + x, y2 = y + y, z2 = z + z;
+            var xx = x * x2, xy = x * y2, xz = x * z2;
+            var yy = y * y2, yz = y * z2, zz = z * z2;
+            var wx = w * x2, wy = w * y2, wz = w * z2;
+            te[0] = 1 - (yy + zz);
+            te[4] = xy - wz;
+            te[8] = xz + wy;
+            te[1] = xy + wz;
+            te[5] = 1 - (xx + zz);
+            te[9] = yz - wx;
+            te[2] = xz - wy;
+            te[6] = yz + wx;
+            te[10] = 1 - (xx + yy);
+            te[3] = 0;
+            te[7] = 0;
+            te[11] = 0;
+            te[12] = 0;
+            te[13] = 0;
+            te[14] = 0;
+            te[15] = 1;
+            return new matrix_vector_1.Matrix(4, te);
+        }
+    }
+    exports.Quaternion = Quaternion;
+    var degToRad = (() => {
+        var degreeToRadiansFactor = Math.PI / 180;
+        return deg => deg * degreeToRadiansFactor;
+    })();
+    function deviceOrientationControl(object) {
+        object.rotation.reorder('YXZ');
+        object.rotation.onChangeCallback = () => void object.quaternion.setFromEuler(object.rotation, false);
+        object.quaternion.onChangeCallback = () => void object.rotation.setFromQuaternion(object.quaternion, object.rotation.order, false);
+        var deviceOrientation = {};
+        var screenOrientation = 0;
+        var alphaOffset = 0;
+        var setObjectQuaternion = (() => {
+            var zee = new Vector3(0, 0, 1);
+            var euler = new Euler();
+            var q0 = new Quaternion();
+            var q1 = new Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+            return function (quaternion, alpha, beta, gamma, orient) {
+                euler.set(beta, alpha, -gamma, 'YXZ');
+                quaternion.setFromEuler(euler);
+                quaternion.multiply(q1);
+                quaternion.multiply(q0.setFromAxisAngle(zee, -orient));
+                return quaternion;
+            };
+        })();
+        var onScreenOrientationChangeEvent;
+        window.addEventListener('orientationchange', onScreenOrientationChangeEvent = () => screenOrientation = (() => {
+            switch (window.screen.orientation || window.screen.mozOrientation) {
+                case 'landscape-primary':
+                    return 90;
+                case 'landscape-secondary':
+                    return -90;
+                case 'portrait-secondary':
+                    return 180;
+                case 'portrait-primary':
+                    return 0;
+            }
+            if (typeof window.orientation == "string")
+                return 0;
+            return window.orientation || 0;
+        })(), false);
+        onScreenOrientationChangeEvent();
+        window.addEventListener('deviceorientation', e => deviceOrientation = e, false);
+        return function update() {
+            var device = deviceOrientation;
+            if (device) {
+                var alpha = device.alpha ? degToRad(device.alpha) + alphaOffset : 0;
+                var beta = device.beta ? degToRad(device.beta) : 0;
+                var gamma = device.gamma ? degToRad(device.gamma) : 0;
+                var orient = screenOrientation ? degToRad(screenOrientation) : 0;
+                setObjectQuaternion(object.quaternion, alpha, beta, gamma, orient);
+            }
+        };
+    }
+    exports.deviceOrientationControl = deviceOrientationControl;
+    ;
+});
+define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/browser/util", "src/lib/browser/dom", "src/lib/browser/logger", "src/lib/browser/webgl", "src/lib/common/util", "src/lib/common/matrix-vector", "node_modules/@types/twgl.js/index", "src/DeviceOrientationControls", "src/lib/browser/doc-loaded-listener"], function (require, exports, fps_1, util_4, dom_1, logger_1, webgl_1, util_5, matrix_vector_2, index_1, DeviceOrientationControls_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     index_1.twgl = window["twgl"];
-    exports.M = matrix_vector_1.Matrix, exports.V = matrix_vector_1.Vector;
+    exports.M = matrix_vector_2.Matrix, exports.V = matrix_vector_2.Vector;
     var programInfo, bufferInfo, cubeTex;
     var framebufferInfo_left;
     var FPSMeter = new fps_1.FPS([(fps) => exports.log({ FPS: fps })], 60);
@@ -765,23 +1017,15 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
             updateCT();
         });
     }
-    var deviceOri = undefined, screenOri = 0;
+    var deviceRot = {
+        rotation: new DeviceOrientationControls_1.Euler(),
+        quaternion: new DeviceOrientationControls_1.Quaternion()
+    }, deviceUpdate = () => 0;
     function initSensor() {
-        window.addEventListener("deviceorientation", (e) => {
-            deviceOri = e;
-        });
-        function getOrientation() {
-            switch (screen.orientation.type || window.screen.orientation || window.screen.mozOrientation) {
-                case 'landscape-primary': return 90;
-                case 'landscape-secondary': return -90;
-                case 'portrait-secondary': return 180;
-                case 'portrait-primary': return 0;
-            }
-            return window.orientation || 0;
-        }
-        window.addEventListener('orientationchange', () => screenOri = getOrientation(), false);
+        deviceUpdate = DeviceOrientationControls_1.deviceOrientationControl(deviceRot);
     }
     function onTick(ticks, time) {
+        deviceUpdate();
         time *= 0.001;
         index_1.twgl.resizeCanvasToDisplaySize(exports.gl.canvas, window.devicePixelRatio || 1.0);
         exports.gl.viewport(0, 0, exports.gl.canvas.width, exports.gl.canvas.height);
@@ -790,17 +1034,7 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
         exports.gl.clear(exports.gl.COLOR_BUFFER_BIT | exports.gl.DEPTH_BUFFER_BIT);
         const fov = options.fov * Math.PI / 180;
         let matTmp = new exports.M(5).getId()
-            .mulMat(new exports.M(5).getRot(0, 1, Math.PI / 12))
-            .mulMat(new exports.M(5).getRot(1, 2, Math.PI / 12))
-            .mulMat(new exports.M(5).getRot(2, 0, Math.PI / 12))
-            .mulMat(new exports.M(5).getRot(2, 3, Math.PI / 12))
-            .mulMat(new exports.M(5).getRot(0, 2, time / 3))
-            .mulMat(new exports.M(5).getRot(0, 3, time))
-            .mulMat(new exports.M(5).getRot(1, 3, time / 3))
-            .mulMat(new exports.M(5).getRot(1, 0, deviceOri && deviceOri.alpha ? deviceOri.alpha * Math.PI / 180 : 0))
-            .mulMat(new exports.M(5).getRot(1, 2, deviceOri && deviceOri.gamma ? deviceOri.gamma * Math.PI / 180 : 0))
-            .mulMat(new exports.M(5).getRot(0, 2, deviceOri && deviceOri.beta ? deviceOri.beta * Math.PI / 180 : 0))
-            .mulMat(new exports.M(5).getRot(0, 1, -screenOri * Math.PI / 180))
+            .mulMat(new exports.M(5).padding(deviceRot.quaternion.makeRotationMatrix().inverse(), 0, 0))
             .transform(new exports.V(5, [0, 0, 3, 3, 0]));
         let matL = matTmp.clone().transform(new exports.V(5, [0 + options.eyeSep4D / 2, 0, 0, 0, 0]));
         let matR = matTmp.clone().transform(new exports.V(5, [0 - options.eyeSep4D / 2, 0, 0, 0, 0]));
