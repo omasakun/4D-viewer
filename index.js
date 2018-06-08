@@ -693,6 +693,15 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
         eyeSep2D: 1,
         scale: 2
     };
+    var rotations = [
+        ["none", t => new exports.M(5).getId()],
+        ["XZ", t => new exports.M(5).getRot(0, 2, t)],
+        ["XYZ", t => new exports.M(5).getRot(0, 1, t).mulMat(new exports.M(5).getRot(1, 2, t))],
+        ["XW", t => new exports.M(5).getRot(0, 2, t)],
+        ["XYW", t => new exports.M(5).getRot(0, 1, t).mulMat(new exports.M(5).getRot(1, 3, t))],
+        ["XYZW", t => new exports.M(5).getRot(0, 1, t).mulMat(new exports.M(5).getRot(1, 2, t).mulMat(new exports.M(5).getRot(2, 3, t)))]
+    ];
+    var rotationID = 0;
     const relativeSensor = true;
     function init() {
         exports.log = logger_1.getLogger(dom_1.ge("log"), 30, false);
@@ -743,7 +752,7 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
                 fullScreen();
             }
         });
-        const cI = dom_1.ge("control-input"), cT = dom_1.ge("control-title");
+        const cI = dom_1.ge("control-input"), cT = dom_1.ge("control-title"), cR = dom_1.ge("control-title");
         var currentOptionIndex = 0;
         var updateCT = () => {
             cT.innerText = options._[currentOptionIndex][1];
@@ -763,6 +772,14 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
         cI.addEventListener("mouseup", (e) => {
             options[options._[currentOptionIndex][0]] = Number.parseFloat(cI.value) / options._[currentOptionIndex][2];
             updateCT();
+        });
+        setInterval(() => {
+            options[options._[currentOptionIndex][0]] = Number.parseFloat(cI.value) / options._[currentOptionIndex][2];
+            updateCT();
+        }, 500);
+        cR.addEventListener("click", (e) => {
+            rotationID = (rotationID + 1) % rotations.length;
+            cR.innerText = rotations[rotationID][0];
         });
     }
     var deviceOri = undefined, screenOri = 0;
