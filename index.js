@@ -866,6 +866,12 @@ define("src/DeviceOrientationControls", ["require", "exports", "src/lib/common/m
             this.onChangeCallback();
             return this;
         }
+        inverse() {
+            this._x *= -1;
+            this._y *= -1;
+            this._z *= -1;
+            return this;
+        }
         makeRotationMatrix() {
             var q = this;
             var te = new Array(16);
@@ -1143,7 +1149,7 @@ define("src/index", ["require", "exports", "src/lib/browser/fps", "src/lib/brows
         const fov = options.fov * Math.PI / 180;
         let matTmp = new exports.M(5).getId()
             .mulMat(rotations[rotationID][1](time))
-            .mulMat(new exports.M(5).padding(deviceRot.quaternion.makeRotationMatrix().scale(new exports.V(4, [-1, -1, 1, 1])), 0, 0))
+            .mulMat(new exports.M(5).padding(deviceRot.quaternion.inverse().makeRotationMatrix().scale(new exports.V(4, [-1, -1, 1, 1])), 0, 0))
             .transform(new exports.V(5, [0, 0, 3, 3, 0]));
         let matL = matTmp.clone().transform(new exports.V(5, [0 + options.eyeSep4D / 2, 0, 0, 0, 0]));
         let matR = matTmp.clone().transform(new exports.V(5, [0 - options.eyeSep4D / 2, 0, 0, 0, 0]));

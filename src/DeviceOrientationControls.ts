@@ -335,6 +335,12 @@ export class Quaternion {
     this.onChangeCallback();
     return this;
   }
+  inverse() {
+    this._x *= -1;
+    this._y *= -1;
+    this._z *= -1;
+    return this;
+  }
   // File:src/math/Matrix4.js / makeRotationFromQuaternion
   /**
    * @author mrdoob / http://mrdoob.com/
