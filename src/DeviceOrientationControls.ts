@@ -51,7 +51,7 @@ export class Vector3 {
 export class Euler {
   RotationOrders = ['XYZ', 'YZX', 'ZXY', 'XZY', 'YXZ', 'ZYX'];
   DefaultOrder = 'XYZ';
-  _x: number; _y: number; _z: number; _order: string;
+  x: number; y: number; z: number; _order: string;
   onChangeCallback = () => void 0;
   get order() { return this._order; }
   set order(value) {
@@ -59,15 +59,15 @@ export class Euler {
     this.onChangeCallback();
   }
   constructor(x = 0, y = 0, z = 0, order = 'XYZ') {
-    this._x = x;
-    this._y = y;
-    this._z = z;
+    this.x = x;
+    this.y = y;
+    this.z = z;
     this._order = order;
   }
   set(x: number, y: number, z: number, order: string) {
-    this._x = x;
-    this._y = y;
-    this._z = z;
+    this.x = x;
+    this.y = y;
+    this.z = z;
     this._order = order || this._order;
     this.onChangeCallback();
     return this;
@@ -82,29 +82,29 @@ export class Euler {
     var sqw = q._w * q._w;
     order = order || this._order;
     if (order === 'XYZ') {
-      this._x = Math.atan2(2 * (q._x * q._w - q._y * q._z), (sqw - sqx - sqy + sqz));
-      this._y = Math.asin(clamp(2 * (q._x * q._z + q._y * q._w), - 1, 1));
-      this._z = Math.atan2(2 * (q._z * q._w - q._x * q._y), (sqw + sqx - sqy - sqz));
+      this.x = Math.atan2(2 * (q._x * q._w - q._y * q._z), (sqw - sqx - sqy + sqz));
+      this.y = Math.asin(clamp(2 * (q._x * q._z + q._y * q._w), - 1, 1));
+      this.z = Math.atan2(2 * (q._z * q._w - q._x * q._y), (sqw + sqx - sqy - sqz));
     } else if (order === 'YXZ') {
-      this._x = Math.asin(clamp(2 * (q._x * q._w - q._y * q._z), - 1, 1));
-      this._y = Math.atan2(2 * (q._x * q._z + q._y * q._w), (sqw - sqx - sqy + sqz));
-      this._z = Math.atan2(2 * (q._x * q._y + q._z * q._w), (sqw - sqx + sqy - sqz));
+      this.x = Math.asin(clamp(2 * (q._x * q._w - q._y * q._z), - 1, 1));
+      this.y = Math.atan2(2 * (q._x * q._z + q._y * q._w), (sqw - sqx - sqy + sqz));
+      this.z = Math.atan2(2 * (q._x * q._y + q._z * q._w), (sqw - sqx + sqy - sqz));
     } else if (order === 'ZXY') {
-      this._x = Math.asin(clamp(2 * (q._x * q._w + q._y * q._z), - 1, 1));
-      this._y = Math.atan2(2 * (q._y * q._w - q._z * q._x), (sqw - sqx - sqy + sqz));
-      this._z = Math.atan2(2 * (q._z * q._w - q._x * q._y), (sqw - sqx + sqy - sqz));
+      this.x = Math.asin(clamp(2 * (q._x * q._w + q._y * q._z), - 1, 1));
+      this.y = Math.atan2(2 * (q._y * q._w - q._z * q._x), (sqw - sqx - sqy + sqz));
+      this.z = Math.atan2(2 * (q._z * q._w - q._x * q._y), (sqw - sqx + sqy - sqz));
     } else if (order === 'ZYX') {
-      this._x = Math.atan2(2 * (q._x * q._w + q._z * q._y), (sqw - sqx - sqy + sqz));
-      this._y = Math.asin(clamp(2 * (q._y * q._w - q._x * q._z), - 1, 1));
-      this._z = Math.atan2(2 * (q._x * q._y + q._z * q._w), (sqw + sqx - sqy - sqz));
+      this.x = Math.atan2(2 * (q._x * q._w + q._z * q._y), (sqw - sqx - sqy + sqz));
+      this.y = Math.asin(clamp(2 * (q._y * q._w - q._x * q._z), - 1, 1));
+      this.z = Math.atan2(2 * (q._x * q._y + q._z * q._w), (sqw + sqx - sqy - sqz));
     } else if (order === 'YZX') {
-      this._x = Math.atan2(2 * (q._x * q._w - q._z * q._y), (sqw - sqx + sqy - sqz));
-      this._y = Math.atan2(2 * (q._y * q._w - q._x * q._z), (sqw + sqx - sqy - sqz));
-      this._z = Math.asin(clamp(2 * (q._x * q._y + q._z * q._w), - 1, 1));
+      this.x = Math.atan2(2 * (q._x * q._w - q._z * q._y), (sqw - sqx + sqy - sqz));
+      this.y = Math.atan2(2 * (q._y * q._w - q._x * q._z), (sqw + sqx - sqy - sqz));
+      this.z = Math.asin(clamp(2 * (q._x * q._y + q._z * q._w), - 1, 1));
     } else if (order === 'XZY') {
-      this._x = Math.atan2(2 * (q._x * q._w + q._y * q._z), (sqw - sqx + sqy - sqz));
-      this._y = Math.atan2(2 * (q._x * q._z + q._y * q._w), (sqw + sqx - sqy - sqz));
-      this._z = Math.asin(clamp(2 * (q._z * q._w - q._x * q._y), - 1, 1));
+      this.x = Math.atan2(2 * (q._x * q._w + q._y * q._z), (sqw - sqx + sqy - sqz));
+      this.y = Math.atan2(2 * (q._x * q._z + q._y * q._w), (sqw + sqx - sqy - sqz));
+      this.z = Math.asin(clamp(2 * (q._z * q._w - q._x * q._y), - 1, 1));
     } else {
       console.warn('THREE.Euler: .setFromQuaternion() given unsupported order: ' + order)
     }
@@ -117,6 +117,127 @@ export class Euler {
     var q = new Quaternion();
     q.setFromEuler(this);
     this.setFromQuaternion(q, newOrder);
+  }
+  makeRotationMatrix() {
+
+    var te: number[] = new Array(16);
+
+    var x = this.x, y = this.y, z = this.z;
+    var a = Math.cos(x), b = Math.sin(x);
+    var c = Math.cos(y), d = Math.sin(y);
+    var e = Math.cos(z), f = Math.sin(z);
+
+    if (this.order === 'XYZ') {
+
+      var ae = a * e, af = a * f, be = b * e, bf = b * f;
+
+      te[0] = c * e;
+      te[4] = - c * f;
+      te[8] = d;
+
+      te[1] = af + be * d;
+      te[5] = ae - bf * d;
+      te[9] = - b * c;
+
+      te[2] = bf - ae * d;
+      te[6] = be + af * d;
+      te[10] = a * c;
+
+    } else if (this.order === 'YXZ') {
+
+      var ce = c * e, cf = c * f, de = d * e, df = d * f;
+
+      te[0] = ce + df * b;
+      te[4] = de * b - cf;
+      te[8] = a * d;
+
+      te[1] = a * f;
+      te[5] = a * e;
+      te[9] = - b;
+
+      te[2] = cf * b - de;
+      te[6] = df + ce * b;
+      te[10] = a * c;
+
+    } else if (this.order === 'ZXY') {
+
+      var ce = c * e, cf = c * f, de = d * e, df = d * f;
+
+      te[0] = ce - df * b;
+      te[4] = - a * f;
+      te[8] = de + cf * b;
+
+      te[1] = cf + de * b;
+      te[5] = a * e;
+      te[9] = df - ce * b;
+
+      te[2] = - a * d;
+      te[6] = b;
+      te[10] = a * c;
+
+    } else if (this.order === 'ZYX') {
+
+      var ae = a * e, af = a * f, be = b * e, bf = b * f;
+
+      te[0] = c * e;
+      te[4] = be * d - af;
+      te[8] = ae * d + bf;
+
+      te[1] = c * f;
+      te[5] = bf * d + ae;
+      te[9] = af * d - be;
+
+      te[2] = - d;
+      te[6] = b * c;
+      te[10] = a * c;
+
+    } else if (this.order === 'YZX') {
+
+      var ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+
+      te[0] = c * e;
+      te[4] = bd - ac * f;
+      te[8] = bc * f + ad;
+
+      te[1] = f;
+      te[5] = a * e;
+      te[9] = - b * e;
+
+      te[2] = - d * e;
+      te[6] = ad * f + bc;
+      te[10] = ac - bd * f;
+
+    } else if (this.order === 'XZY') {
+
+      var ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+
+      te[0] = c * e;
+      te[4] = - f;
+      te[8] = d * e;
+
+      te[1] = ac * f + bd;
+      te[5] = a * e;
+      te[9] = ad * f - bc;
+
+      te[2] = bc * f - ad;
+      te[6] = b * e;
+      te[10] = bd * f + ac;
+
+    }
+
+    // bottom row
+    te[3] = 0;
+    te[7] = 0;
+    te[11] = 0;
+
+    // last column
+    te[12] = 0;
+    te[13] = 0;
+    te[14] = 0;
+    te[15] = 1;
+
+    return new Matrix(4, te);
+
   }
 }
 
@@ -144,12 +265,12 @@ export class Quaternion {
     // 	20696-function-to-convert-between-dcm-euler-angles-quaternions-and-euler-vectors/
     //	content/SpinCalc.m
 
-    var c1 = Math.cos(euler._x / 2);
-    var c2 = Math.cos(euler._y / 2);
-    var c3 = Math.cos(euler._z / 2);
-    var s1 = Math.sin(euler._x / 2);
-    var s2 = Math.sin(euler._y / 2);
-    var s3 = Math.sin(euler._z / 2);
+    var c1 = Math.cos(euler.x / 2);
+    var c2 = Math.cos(euler.y / 2);
+    var c3 = Math.cos(euler.z / 2);
+    var s1 = Math.sin(euler.x / 2);
+    var s2 = Math.sin(euler.y / 2);
+    var s3 = Math.sin(euler.z / 2);
 
     if (euler.order === 'XYZ') {
       this._x = s1 * c2 * c3 + c1 * s2 * s3;
@@ -295,7 +416,7 @@ export function deviceOrientationControl(object: { rotation: Euler, quaternion: 
     var euler = new Euler();
     var q0 = new Quaternion();
     var q1 = new Quaternion(- Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // - PI/2 around the x-axis
-    return function (quaternion:Quaternion, alpha, beta, gamma, orient) {
+    return function (quaternion: Quaternion, alpha, beta, gamma, orient) {
       euler.set(beta, alpha, - gamma, 'YXZ'); // 'ZXY' for the device, but 'YXZ' for us
       quaternion.setFromEuler(euler); // orient the device
       quaternion.multiply(q1); // camera looks out the back of the device, not the top

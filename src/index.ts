@@ -97,12 +97,12 @@ var options = {
 	scale: 2
 }
 var rotations: [string, (t: number) => Matrix][] = [
-	["none", t => new M(5).getId()],
-	["XZ", t => new M(5).getRot(0, 2, t)],
-	["XYZ", t => new M(5).getRot(0, 1, t).mulMat(new M(5).getRot(1, 2, t))],
-	["XW", t => new M(5).getRot(0, 2, t)],
-	["XYW", t => new M(5).getRot(0, 1, t).mulMat(new M(5).getRot(1, 3, t))],
-	["XYZW", t => new M(5).getRot(0, 1, t).mulMat(new M(5).getRot(1, 2, t).mulMat(new M(5).getRot(2, 3, t)))]
+	["No Rotation", t => new M(5).getId()],
+	["XZ Rot.", t => new M(5).getRot(0, 2, t)],
+	["XYZ Rot.", t => new M(5).getRot(0, 1, t).mulMat(new M(5).getRot(1, 2, t))],
+	["ZW Rot.", t => new M(5).getRot(2, 3, t)],
+	["XZW Rot.", t => new M(5).getRot(0, 2, t).mulMat(new M(5).getRot(2, 3, t))],
+	["XYZW Rot.", t => new M(5).getRot(0, 1, t).mulMat(new M(5).getRot(1, 2, t).mulMat(new M(5).getRot(2, 3, t)))]
 ];
 var rotationID = 0;
 const relativeSensor = true;
@@ -153,7 +153,7 @@ function addEvents() {
 			fullScreen();
 		}
 	});
-	const cI = ge("control-input") as HTMLInputElement, cT = ge("control-title") as HTMLButtonElement, cR = ge("control-title") as HTMLButtonElement;
+	const cI = ge("control-input") as HTMLInputElement, cT = ge("control-title") as HTMLButtonElement, cR = ge("control-rotate") as HTMLButtonElement;
 
 	var currentOptionIndex = 0;
 	var updateCT = () => {
@@ -179,9 +179,14 @@ function addEvents() {
 		options[options._[currentOptionIndex][0]] = Number.parseFloat(cI.value) / options._[currentOptionIndex][2];
 		updateCT();
 	}, 500);
+	var updateCR = () => {
+		cR.innerText = rotations[rotationID][0];
+
+	};
+	updateCR();
 	cR.addEventListener("click", (e) => {
 		rotationID = (rotationID + 1) % rotations.length;
-		cR.innerText = rotations[rotationID][0];
+		updateCR();
 	})
 }
 var deviceRot = {
@@ -205,7 +210,6 @@ function onTick(ticks: number, time: number): boolean {
 	//gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	const fov = options.fov * Math.PI / 180;
-
 	// x, y, z, w, 1 -> x', y', z', w'
 	let matTmp = new M(5).getId()
 		//.mulMat(new M(5).getRot(0, 1, Math.PI / 12))
@@ -214,8 +218,8 @@ function onTick(ticks: number, time: number): boolean {
 		//.mulMat(new M(5).getRot(2, 3, Math.PI / 12))
 		//.mulMat(new M(5).getRot(0, 2, time / 3))
 		//.mulMat(new M(5).getRot(0, 3, time))
-		//.mulMat(new M(5).getRot(1, 3, time / 3))
-		.mulMat(new M(5).padding(deviceRot.quaternion.makeRotationMatrix().transpose(), 0, 0))
+		.mulMat(rotations[rotationID][1](time))
+		.mulMat(new M(5).padding(deviceRot.quaternion.makeRotationMatrix().scale(new V(4, [-1, -1, 1, 1])), 0, 0))
 		// .mulMat(new M(5).getRot(1, 0, deviceOri && deviceOri.alpha ? deviceOri.alpha * Math.PI / 180 : 0))
 		// .mulMat(new M(5).getRot(1, 2, deviceOri && deviceOri.gamma ? deviceOri.gamma * Math.PI / 180 : 0))
 		// .mulMat(new M(5).getRot(0, 2, deviceOri && deviceOri.beta ? deviceOri.beta * Math.PI / 180 : 0))
