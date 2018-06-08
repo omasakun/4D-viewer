@@ -1,4 +1,4 @@
-define("src/lib/browser/doc-loaded-listener", ["require", "exports"], function (require, exports) {
+define("src/lib/browser/doc-loaded-listener", ["require", "exports"], function (require, exports) { //
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.DOC_LOADED = false || exports.DOC_LOADED == true;
