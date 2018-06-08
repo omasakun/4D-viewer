@@ -235,7 +235,7 @@ export class Matrix {
 		}
 		for (let x = x1; x < x1 + m.dimension; x++) {
 			for (let y = x1; y < y1 + m.dimension; y++) {
-				this.data[x * this.dimension + y] = m[(x - x1) * m.dimension + (y - y1)];
+				this.data[x * this.dimension + y] = m.data[(x - x1) * m.dimension + (y - y1)];
 			}
 		}
 		return this;

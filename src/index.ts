@@ -7,7 +7,7 @@ import { initWebGL } from "./lib/browser/webgl";
 import { showError } from "./lib/common/util";
 import { Matrix, Vector } from "./lib/common/matrix-vector";
 import { twgl } from "../node_modules/@types/twgl.js/index"; // http://twgljs.org/docs/
-
+import { deviceOrientationControl, Euler, Quaternion } from "./DeviceOrientationControls";
 
 //@ts-ignore // Force to load twgl.js
 twgl = window["twgl"] as any;
@@ -184,23 +184,16 @@ function addEvents() {
 		cR.innerText = rotations[rotationID][0];
 	})
 }
-var deviceOri: DeviceOrientationEvent | undefined = undefined, screenOri = 0;
+var deviceRot = {
+	rotation: new Euler(),
+	quaternion: new Quaternion()
+}, deviceUpdate: () => any = () => 0;
 function initSensor() {
-	window.addEventListener("deviceorientation", (e) => {
-		deviceOri = e;
-		// console.log(e.alpha, e.beta, e.gamma);
-	});
-	function getOrientation() {
-		switch (screen.orientation.type || window.screen.orientation || window.screen.mozOrientation) {
-			case 'landscape-primary': return 90;
-			case 'landscape-secondary': return -90;
-			case 'portrait-secondary': return 180;
-			case 'portrait-primary': return 0;
-		}		return window.orientation as number || 0;
-	}
-	window.addEventListener('orientationchange', () => screenOri = getOrientation(), false);
+	deviceUpdate = deviceOrientationControl(deviceRot);
 }
 function onTick(ticks: number, time: number): boolean {
+	deviceUpdate();
+	// console.log(deviceRot.quaternion.makeRotationMatrix(),new M(5).padding(deviceRot.quaternion.makeRotationMatrix(), 0, 0).toString());
 	time *= 0.001;
 	twgl.resizeCanvasToDisplaySize(gl.canvas, window.devicePixelRatio || 1.0);
 	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -215,17 +208,18 @@ function onTick(ticks: number, time: number): boolean {
 
 	// x, y, z, w, 1 -> x', y', z', w'
 	let matTmp = new M(5).getId()
-		.mulMat(new M(5).getRot(0, 1, Math.PI / 12))
-		.mulMat(new M(5).getRot(1, 2, Math.PI / 12))
-		.mulMat(new M(5).getRot(2, 0, Math.PI / 12))
-		.mulMat(new M(5).getRot(2, 3, Math.PI / 12))
-		.mulMat(new M(5).getRot(0, 2, time / 3))
-		.mulMat(new M(5).getRot(0, 3, time))
-		.mulMat(new M(5).getRot(1, 3, time / 3))
-		.mulMat(new M(5).getRot(1, 0, deviceOri && deviceOri.alpha ? deviceOri.alpha * Math.PI / 180 : 0))
-		.mulMat(new M(5).getRot(1, 2, deviceOri && deviceOri.gamma ? deviceOri.gamma * Math.PI / 180 : 0))
-		.mulMat(new M(5).getRot(0, 2, deviceOri && deviceOri.beta ? deviceOri.beta * Math.PI / 180 : 0))
-		.mulMat(new M(5).getRot(0, 1, -screenOri * Math.PI / 180))
+		//.mulMat(new M(5).getRot(0, 1, Math.PI / 12))
+		//.mulMat(new M(5).getRot(1, 2, Math.PI / 12))
+		//.mulMat(new M(5).getRot(2, 0, Math.PI / 12))
+		//.mulMat(new M(5).getRot(2, 3, Math.PI / 12))
+		//.mulMat(new M(5).getRot(0, 2, time / 3))
+		//.mulMat(new M(5).getRot(0, 3, time))
+		//.mulMat(new M(5).getRot(1, 3, time / 3))
+		.mulMat(new M(5).padding(deviceRot.quaternion.makeRotationMatrix().transpose(), 0, 0))
+		// .mulMat(new M(5).getRot(1, 0, deviceOri && deviceOri.alpha ? deviceOri.alpha * Math.PI / 180 : 0))
+		// .mulMat(new M(5).getRot(1, 2, deviceOri && deviceOri.gamma ? deviceOri.gamma * Math.PI / 180 : 0))
+		// .mulMat(new M(5).getRot(0, 2, deviceOri && deviceOri.beta ? deviceOri.beta * Math.PI / 180 : 0))
+		// .mulMat(new M(5).getRot(0, 1, -screenOri * Math.PI / 180))
 		.transform(new V(5, [0, 0, 3, 3, 0]));
 	//	if(deviceOri)
 	//	ge("control-info").innerText = deviceOri.alpha.toFixed(2)+":"+deviceOri.beta.toFixed(2)+":"+deviceOri.gamma.toFixed(2)+":"+screenOri;
